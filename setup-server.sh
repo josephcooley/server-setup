@@ -12,6 +12,7 @@ set -e  # Exit on error
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Configuration
@@ -40,11 +41,48 @@ log_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
+log_debug() {
+    echo -e "${BLUE}[DEBUG]${NC} $1"
+}
+
 check_root() {
     if [[ $EUID -ne 0 ]]; then
         log_error "This script must be run as root"
         exit 1
     fi
+}
+
+################################################################################
+# Diagnostic Functions
+################################################################################
+
+diagnose_network() {
+    log_info "Running network diagnostics..."
+    
+    if ping -c 1 -W 2 $NAS_IP > /dev/null 2>&1; then
+        log_info "✓ Can reach NAS at $NAS_IP"
+    else
+        log_error "✗ Cannot reach NAS at $NAS_IP"
+        log_error "  - Check NAS IP address is correct"
+        log_error "  - Verify network connectivity"
+        return 1
+    fi
+    
+    if command -v showmount &> /dev/null; then
+        log_info "Checking NFS exports on NAS..."
+        if showmount -e $NAS_IP > /dev/null 2>&1; then
+            log_info "✓ NAS has NFS exports available"
+            log_debug "Available exports:"
+            showmount -e $NAS_IP | sed 's/^/  /'
+        else
+            log_error "✗ Cannot list NFS exports from $NAS_IP"
+            log_error "  - Check if NFS is enabled on TrueNAS"
+            log_error "  - Verify NFS sharing is configured for the shares"
+            return 1
+        fi
+    fi
+    
+    return 0
 }
 
 ################################################################################
@@ -113,23 +151,39 @@ setup_nfs_mounts() {
         ["/mnt/movies"]="$NAS_IP:/mnt/Storage/Movies"
     )
     
-    # Temporary mount to test connectivity
+    # Temporary mount to test connectivity (try NFSv3 first, then v4)
     log_info "Temporarily mounting NFS shares for testing..."
+    local mount_success=0
+    local mount_fail=0
+    
     for mount_point in "${!NFS_MOUNTS[@]}"; do
         nfs_share="${NFS_MOUNTS[$mount_point]}"
-        if mount -t nfs "$nfs_share" "$mount_point" 2>/dev/null; then
-            log_info "Successfully mounted: $nfs_share"
+        
+        # Try NFSv3 first (more commonly compatible)
+        if mount -t nfs -o vers=3,nfsvers=3 "$nfs_share" "$mount_point" 2>/dev/null; then
+            log_info "✓ Successfully mounted (NFSv3): $nfs_share"
+            ((mount_success++))
+        # Then try NFSv4
+        elif mount -t nfs -o vers=4,nfsvers=4 "$nfs_share" "$mount_point" 2>/dev/null; then
+            log_info "✓ Successfully mounted (NFSv4): $nfs_share"
+            ((mount_success++))
         else
-            log_error "Failed to mount: $nfs_share"
+            log_error "✗ Failed to mount: $nfs_share"
+            ((mount_fail++))
         fi
     done
     
     # Test access
     log_info "Testing NFS access..."
     if df -h | grep -q "$NAS_IP"; then
-        log_info "NFS mounts verified"
+        log_info "✓ NFS mounts verified ($mount_success successful)"
     else
-        log_error "Failed to verify NFS mounts"
+        log_error "✗ Failed to verify NFS mounts"
+        log_warn "  Continuing with script - you may need to troubleshoot NFS separately"
+    fi
+    
+    if [ $mount_fail -gt 0 ]; then
+        log_warn "  $mount_fail mount(s) failed - may retry on reboot"
     fi
 }
 
@@ -144,21 +198,25 @@ setup_persistent_mounts() {
     cp /etc/fstab /etc/fstab.backup
     log_info "Backed up /etc/fstab to /etc/fstab.backup"
     
-    # Add NFS entries to fstab (avoid duplicates)
+    # Add NFS entries to fstab with NFSv3 (more compatible)
     cat >> /etc/fstab << EOF
-$NAS_IP:/mnt/Storage/Books      /mnt/books      nfs   defaults,_netdev   0  0
-$NAS_IP:/mnt/Storage/Documents  /mnt/documents  nfs   defaults,_netdev   0  0
-$NAS_IP:/mnt/Storage/Downloads  /mnt/downloads  nfs   defaults,_netdev   0  0
-$NAS_IP:/mnt/Storage/TV         /mnt/tv         nfs   defaults,_netdev   0  0
-$NAS_IP:/mnt/Storage/Movies     /mnt/movies     nfs   defaults,_netdev   0  0
+$NAS_IP:/mnt/Storage/Books      /mnt/books      nfs   defaults,_netdev,vers=3,nfsvers=3   0  0
+$NAS_IP:/mnt/Storage/Documents  /mnt/documents  nfs   defaults,_netdev,vers=3,nfsvers=3   0  0
+$NAS_IP:/mnt/Storage/Downloads  /mnt/downloads  nfs   defaults,_netdev,vers=3,nfsvers=3   0  0
+$NAS_IP:/mnt/Storage/TV         /mnt/tv         nfs   defaults,_netdev,vers=3,nfsvers=3   0  0
+$NAS_IP:/mnt/Storage/Movies     /mnt/movies     nfs   defaults,_netdev,vers=3,nfsvers=3   0  0
 EOF
     
-    log_info "Added NFS mounts to /etc/fstab"
+    log_info "Added NFS mounts to /etc/fstab (using NFSv3)"
     
     # Reload and apply mounts
     systemctl daemon-reload
-    mount -a
-    log_info "Reloaded and applied mounts"
+    if mount -a 2>/dev/null; then
+        log_info "✓ Applied persistent mount configuration"
+    else
+        log_warn "Some mounts failed during 'mount -a'"
+        log_warn "Check NFS connectivity - remaining mounts will retry on reboot"
+    fi
 }
 
 ################################################################################
@@ -166,29 +224,41 @@ EOF
 ################################################################################
 
 setup_idmapd() {
-    log_info "Configuring NFSv4 UID/GID mapping..."
+    log_info "Configuring NFSv4 UID/GID mapping (optional)..."
     
-    # Configure idmapd.conf
+    # Configure idmapd.conf with nsswitch method (more reliable than 'file')
     cat > /etc/idmapd.conf << EOF
 [General]
 Domain = $NAS_DOMAIN
+Verbosity = 0
+Pipefs-Directory = /run/rpc_pipefs
+Cache-Expiration = 600
+Enable-GSS = yes
 
 [Mapping]
 Nobody-User = nobody
 Nobody-Group = nogroup
 
 [Translation]
-Method = file
+Method = nsswitch
 
 [Static]
 $TRUENAS_UID@$NAS_DOMAIN = 1000
+1000@$NAS_DOMAIN = $TRUENAS_UID
 EOF
     
-    log_info "Configured /etc/idmapd.conf"
+    log_info "Configured /etc/idmapd.conf (using nsswitch method)"
     
-    # Restart NFS idmapd
-    systemctl restart nfs-idmapd
-    log_info "Restarted nfs-idmapd service"
+    # Try to restart NFS idmapd, but don't fail if it doesn't work
+    # This is only needed for NFSv4 with UID/GID mapping
+    if command -v systemctl &> /dev/null; then
+        if systemctl restart nfs-idmapd 2>&1; then
+            log_info "✓ Restarted nfs-idmapd service"
+        else
+            log_warn "⚠ nfs-idmapd failed to start (usually not critical for NFSv3)"
+            log_debug "  This only affects NFSv4 UID/GID mapping"
+        fi
+    fi
 }
 
 ################################################################################
@@ -197,6 +267,12 @@ EOF
 
 install_docker() {
     log_info "Installing Docker..."
+    
+    # Check if already installed
+    if command -v docker &> /dev/null; then
+        log_warn "Docker already installed"
+        return 0
+    fi
     
     # Install prerequisites
     apt install -y ca-certificates curl gnupg
@@ -214,7 +290,7 @@ install_docker() {
     
     # Enable and start Docker
     systemctl enable --now docker
-    log_info "Docker installed and enabled"
+    log_info "✓ Docker installed and enabled"
 }
 
 ################################################################################
@@ -247,8 +323,12 @@ EOF
     
     # Start Dockge
     cd $DOCKGE_PATH
-    docker compose up -d
-    log_info "Started Dockge container"
+    if docker compose up -d; then
+        log_info "✓ Started Dockge container"
+    else
+        log_error "✗ Failed to start Dockge"
+        return 1
+    fi
 }
 
 ################################################################################
@@ -266,17 +346,21 @@ print_summary() {
     echo "  NAS Domain: $NAS_DOMAIN"
     echo "  TrueNAS User: $TRUENAS_USER (UID: $TRUENAS_UID)"
     echo "  Dockge URL: http://localhost:$DOCKGE_PORT"
+    echo "  NFS Version: NFSv3 (with NFSv4 fallback)"
     echo ""
     echo "NFS Mounts:"
-    df -h | grep "$NAS_IP" || echo "  No mounts currently visible"
+    df -h | grep "$NAS_IP" || echo "  ⚠ No mounts currently visible (will attempt on reboot)"
     echo ""
     echo "Docker Status:"
-    docker ps --filter "name=dockge"
+    docker ps --filter "name=dockge" || echo "  (Dockge may not be running)"
     echo ""
     echo "Next Steps:"
     echo "  1. Switch to the new user: su - $TRUENAS_USER"
     echo "  2. Verify NFS mounts: df -h | grep $NAS_IP"
     echo "  3. Access Dockge: http://<server-ip>:$DOCKGE_PORT"
+    echo ""
+    echo "Permanent mounts configured in /etc/fstab"
+    echo "Backup saved to /etc/fstab.backup"
     echo ""
 }
 
@@ -289,6 +373,17 @@ main() {
     
     check_root
     
+    # Run diagnostics first
+    if ! diagnose_network; then
+        log_warn "Network diagnostics failed - NFS mounts may fail"
+        log_warn "Continue anyway? (y/n)"
+        read -r response
+        if [[ ! "$response" =~ ^[Yy]$ ]]; then
+            log_info "Setup cancelled"
+            exit 1
+        fi
+    fi
+    
     update_system
     setup_truenas_user
     install_docker
@@ -299,7 +394,7 @@ main() {
     
     print_summary
     
-    log_info "Setup completed successfully!"
+    log_info "Setup completed!"
 }
 
 # Run main function
