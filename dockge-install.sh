@@ -2,7 +2,7 @@
 
 ################################################################################
 # Dockge Installation Script
-# Installs Docker and Dockge container management UI on Ubuntu
+# Installs Docker and Dockge container management UI on Ubuntu 20+
 # Author: Joseph M. Cooley
 ################################################################################
 
@@ -54,33 +54,35 @@ check_root() {
 convert_static_to_dynamic() {
     log_info "Checking network configuration..."
     
-    # Check if using Netplan (Ubuntu 18.04+)
-    if [ -d /etc/netplan ]; then
-        log_debug "Found Netplan configuration"
-        
-        # Look for YAML files with static IP configuration
-        local static_config_found=false
-        
-        for config_file in /etc/netplan/*.yaml /etc/netplan/*.yml; do
-            if [ -f "$config_file" ]; then
-                # Check if file contains static IP configuration
-                if grep -q "addresses:" "$config_file" && ! grep -q "dhcp4: true" "$config_file"; then
-                    log_info "✓ Found static IP configuration in: $config_file"
-                    static_config_found=true
-                    
-                    # Backup the original config
-                    cp "$config_file" "${config_file}.backup"
-                    log_info "  Backed up to: ${config_file}.backup"
-                    
-                    # Create new dynamic IP config
-                    log_info "  Converting to dynamic IP (DHCP)..."
-                    
-                    # Extract interface name from config
-                    local interface=$(grep -oP '^\s*\K[a-zA-Z0-9-]+(?=:)' "$config_file" | grep -v "network\|version\|renderer" | head -1)
-                    
-                    if [ -n "$interface" ]; then
-                        # Create dynamic IP configuration
-                        cat > "$config_file" << EOF
+    if [ ! -d /etc/netplan ]; then
+        log_error "Netplan not found. This script requires Ubuntu 20.04 or later."
+        exit 1
+    fi
+    
+    log_debug "Found Netplan configuration"
+    
+    local static_config_found=false
+    
+    for config_file in /etc/netplan/*.yaml /etc/netplan/*.yml; do
+        if [ -f "$config_file" ]; then
+            # Check if file contains static IP configuration
+            if grep -q "addresses:" "$config_file" && ! grep -q "dhcp4: true" "$config_file"; then
+                log_info "✓ Found static IP configuration in: $config_file"
+                static_config_found=true
+                
+                # Backup the original config
+                cp "$config_file" "${config_file}.backup"
+                log_info "  Backed up to: ${config_file}.backup"
+                
+                # Create new dynamic IP config
+                log_info "  Converting to dynamic IP (DHCP)..."
+                
+                # Extract interface name from config
+                local interface=$(grep -oP '^\s*\K[a-zA-Z0-9-]+(?=:)' "$config_file" | grep -v "network\|version\|renderer" | head -1)
+                
+                if [ -n "$interface" ]; then
+                    # Create dynamic IP configuration
+                    cat > "$config_file" << EOF
 network:
   version: 2
   renderer: networkd
@@ -88,132 +90,33 @@ network:
     $interface:
       dhcp4: true
 EOF
-                        log_info "  Created new DHCP configuration for interface: $interface"
-                    else
-                        log_error "  Could not determine interface name"
-                        return 1
-                    fi
+                    log_info "  Created new DHCP configuration for interface: $interface"
+                else
+                    log_error "  Could not determine interface name"
+                    return 1
                 fi
             fi
-        done
-        
-        if [ "$static_config_found" = true ]; then
-            # Apply the new configuration
-            log_info "Applying network configuration..."
-            netplan apply
-            log_info "✓ Network configuration applied"
-            
-            # Give it a moment to acquire IP
-            sleep 2
-            
-            # Verify DHCP
-            log_info "Verifying dynamic IP assignment..."
-            local interface=$(ip -4 route ls | grep default | grep -oP '(?<=dev\s)\S+' | head -1)
-            if [ -n "$interface" ]; then
-                local current_ip=$(ip -4 addr show "$interface" | grep -oP '(?<=inet\s)\d+(\.\d+){3}' | head -1)
-                log_info "✓ Interface $interface has IP: $current_ip (DHCP)"
-            fi
-        else
-            log_info "✓ No static IP configuration found (already using DHCP)"
         fi
+    done
     
-    # Check if using systemd-networkd directly
-    elif [ -d /etc/systemd/network ]; then
-        log_debug "Found systemd-networkd configuration"
+    if [ "$static_config_found" = true ]; then
+        # Apply the new configuration
+        log_info "Applying network configuration..."
+        netplan apply
+        log_info "✓ Network configuration applied"
         
-        local static_config_found=false
+        # Give it a moment to acquire IP
+        sleep 2
         
-        for config_file in /etc/systemd/network/*.network; do
-            if [ -f "$config_file" ]; then
-                if grep -q "Address=" "$config_file"; then
-                    log_info "✓ Found static IP configuration in: $config_file"
-                    static_config_found=true
-                    
-                    # Backup the original config
-                    cp "$config_file" "${config_file}.backup"
-                    log_info "  Backed up to: ${config_file}.backup"
-                    
-                    # Extract interface name
-                    local interface=$(grep -oP '(?<=\[Match\])[^[]*(Name=\K[^ \n]+)' "$config_file" | head -1)
-                    
-                    if [ -n "$interface" ]; then
-                        log_info "  Converting to dynamic IP (DHCP)..."
-                        
-                        # Create dynamic IP configuration
-                        cat > "$config_file" << EOF
-[Match]
-Name=$interface
-
-[Network]
-DHCP=yes
-EOF
-                        log_info "  Created new DHCP configuration for interface: $interface"
-                    fi
-                fi
-            fi
-        done
-        
-        if [ "$static_config_found" = true ]; then
-            log_info "Restarting systemd-networkd..."
-            systemctl restart systemd-networkd
-            sleep 2
-            log_info "✓ Network configuration applied"
-            
-            # Verify DHCP
-            log_info "Verifying dynamic IP assignment..."
-            local interface=$(ip -4 route ls | grep default | grep -oP '(?<=dev\s)\S+' | head -1)
-            if [ -n "$interface" ]; then
-                local current_ip=$(ip -4 addr show "$interface" | grep -oP '(?<=inet\s)\d+(\.\d+){3}' | head -1)
-                log_info "✓ Interface $interface has IP: $current_ip (DHCP)"
-            fi
-        else
-            log_info "✓ No static IP configuration found (already using DHCP)"
+        # Verify DHCP
+        log_info "Verifying dynamic IP assignment..."
+        local interface=$(ip -4 route ls | grep default | grep -oP '(?<=dev\s)\S+' | head -1)
+        if [ -n "$interface" ]; then
+            local current_ip=$(ip -4 addr show "$interface" | grep -oP '(?<=inet\s)\d+(\.\d+){3}' | head -1)
+            log_info "✓ Interface $interface has IP: $current_ip (DHCP)"
         fi
-    
-    # Check /etc/network/interfaces (older Ubuntu versions)
-    elif [ -f /etc/network/interfaces ]; then
-        log_debug "Found /etc/network/interfaces configuration"
-        
-        if grep -q "iface.*static" /etc/network/interfaces; then
-            log_info "✓ Found static IP configuration"
-            
-            # Backup the original config
-            cp /etc/network/interfaces /etc/network/interfaces.backup
-            log_info "  Backed up to: /etc/network/interfaces.backup"
-            
-            # Extract interface name
-            local interface=$(grep "iface.*static" /etc/network/interfaces | awk '{print $2}' | head -1)
-            
-            if [ -n "$interface" ]; then
-                log_info "  Converting to dynamic IP (DHCP)..."
-                
-                # Create dynamic IP configuration
-                cat > /etc/network/interfaces << EOF
-auto lo
-iface lo inet loopback
-
-auto $interface
-iface $interface inet dhcp
-EOF
-                log_info "  Created new DHCP configuration for interface: $interface"
-            fi
-            
-            log_info "Restarting networking..."
-            systemctl restart networking
-            sleep 2
-            log_info "✓ Network configuration applied"
-            
-            # Verify DHCP
-            log_info "Verifying dynamic IP assignment..."
-            local current_ip=$(hostname -I | awk '{print $1}')
-            log_info "✓ Server has IP: $current_ip (DHCP)"
-        else
-            log_info "✓ No static IP configuration found (already using DHCP)"
-        fi
-    
     else
-        log_warn "Could not determine network configuration method"
-        log_warn "Please verify your network configuration manually"
+        log_info "✓ No static IP configuration found (already using DHCP)"
     fi
 }
 
