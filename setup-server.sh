@@ -142,6 +142,9 @@ setup_nfs_mounts() {
     mkdir -p /mnt/movies
     mkdir -p /mnt/tv
     
+    # Fix permissions on mount directories (may have been created by previous runs)
+    chmod 755 /mnt/books /mnt/documents /mnt/downloads /mnt/movies /mnt/tv
+    
     # Define NFS mounts
     declare -A NFS_MOUNTS=(
         ["/mnt/books"]="$NAS_IP:/mnt/Storage/Books"
@@ -151,7 +154,16 @@ setup_nfs_mounts() {
         ["/mnt/movies"]="$NAS_IP:/mnt/Storage/Movies"
     )
     
-    # Temporary mount to test connectivity (try NFSv3 first, then v4)
+    # Unmount any existing mounts first (from previous attempts)
+    log_info "Cleaning up any previous mount attempts..."
+    for mount_point in "${!NFS_MOUNTS[@]}"; do
+        if mountpoint -q "$mount_point" 2>/dev/null; then
+            log_debug "Unmounting $mount_point..."
+            umount -l "$mount_point" 2>/dev/null || true
+        fi
+    done
+    
+    # Temporary mount to test connectivity
     log_info "Temporarily mounting NFS shares for testing..."
     local mount_success=0
     local mount_fail=0
@@ -159,13 +171,17 @@ setup_nfs_mounts() {
     for mount_point in "${!NFS_MOUNTS[@]}"; do
         nfs_share="${NFS_MOUNTS[$mount_point]}"
         
-        # Try NFSv3 first (more commonly compatible)
-        if mount -t nfs -o vers=3,nfsvers=3 "$nfs_share" "$mount_point" 2>/dev/null; then
+        # Try NFSv3 first (more commonly compatible) - use only vers=3, not nfsvers
+        if mount -t nfs -o vers=3 "$nfs_share" "$mount_point" 2>/dev/null; then
             log_info "✓ Successfully mounted (NFSv3): $nfs_share"
             ((mount_success++))
         # Then try NFSv4
-        elif mount -t nfs -o vers=4,nfsvers=4 "$nfs_share" "$mount_point" 2>/dev/null; then
+        elif mount -t nfs -o vers=4 "$nfs_share" "$mount_point" 2>/dev/null; then
             log_info "✓ Successfully mounted (NFSv4): $nfs_share"
+            ((mount_success++))
+        # Try default NFS (let the system choose)
+        elif mount -t nfs "$nfs_share" "$mount_point" 2>/dev/null; then
+            log_info "✓ Successfully mounted (auto): $nfs_share"
             ((mount_success++))
         else
             log_error "✗ Failed to mount: $nfs_share"
@@ -198,13 +214,19 @@ setup_persistent_mounts() {
     cp /etc/fstab /etc/fstab.backup
     log_info "Backed up /etc/fstab to /etc/fstab.backup"
     
-    # Add NFS entries to fstab with NFSv3 (more compatible)
+    # Check if entries already exist to avoid duplicates
+    if grep -q "$NAS_IP:/mnt/Storage/Books" /etc/fstab 2>/dev/null; then
+        log_warn "NFS mounts already in /etc/fstab, skipping..."
+        return 0
+    fi
+    
+    # Add NFS entries to fstab with NFSv3 (more compatible) - use only vers=3
     cat >> /etc/fstab << EOF
-$NAS_IP:/mnt/Storage/Books      /mnt/books      nfs   defaults,_netdev,vers=3,nfsvers=3   0  0
-$NAS_IP:/mnt/Storage/Documents  /mnt/documents  nfs   defaults,_netdev,vers=3,nfsvers=3   0  0
-$NAS_IP:/mnt/Storage/Downloads  /mnt/downloads  nfs   defaults,_netdev,vers=3,nfsvers=3   0  0
-$NAS_IP:/mnt/Storage/TV         /mnt/tv         nfs   defaults,_netdev,vers=3,nfsvers=3   0  0
-$NAS_IP:/mnt/Storage/Movies     /mnt/movies     nfs   defaults,_netdev,vers=3,nfsvers=3   0  0
+$NAS_IP:/mnt/Storage/Books      /mnt/books      nfs   defaults,_netdev,vers=3   0  0
+$NAS_IP:/mnt/Storage/Documents  /mnt/documents  nfs   defaults,_netdev,vers=3   0  0
+$NAS_IP:/mnt/Storage/Downloads  /mnt/downloads  nfs   defaults,_netdev,vers=3   0  0
+$NAS_IP:/mnt/Storage/TV         /mnt/tv         nfs   defaults,_netdev,vers=3   0  0
+$NAS_IP:/mnt/Storage/Movies     /mnt/movies     nfs   defaults,_netdev,vers=3   0  0
 EOF
     
     log_info "Added NFS mounts to /etc/fstab (using NFSv3)"
