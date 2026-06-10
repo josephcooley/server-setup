@@ -144,8 +144,6 @@ mkdir -p /opt/stacks
 
 # Create docker-compose.yml for Dockge
 cat > /opt/dockge/docker-compose.yml << 'EOF'
-version: '3.8'
-
 services:
   dockge:
     image: louislam/dockge:latest
