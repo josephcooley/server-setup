@@ -1,73 +1,11 @@
 # TrueNAS Server Setup Scripts
 
-Collection of modular bash scripts for setting up a Ubuntu server with TrueNAS storage mounts and Docker container management.
+Script for setting up a Ubuntu server with TrueNAS storage mounts and Docker container management.
 
-## Available Scripts
-
-### 1. `dockge-install.sh` - Docker & Dockge Installation
+### `setup-server.sh` - Complete Server Setup (Legacy)
 
 **What it does:**
-- Updates system packages
-- Installs Docker CE with Docker Compose
-- Deploys Dockge web UI for Docker container management
-
-**When to use:** 
-- Just want Docker and Dockge on your server
-- Skip NFS mount configuration
-
-**Usage:**
-```bash
-curl -O https://raw.githubusercontent.com/josephcooley/server-setup/main/dockge-install.sh
-chmod +x dockge-install.sh
-sudo ./dockge-install.sh
-```
-
-**Access Dockge:**
-Open browser to `http://<server-ip>:5001`
-
----
-
-### 2. `mounts.sh` - NFS Mounts Setup
-
-**What it does:**
-- Creates truenas user and group (UID/GID 3000)
-- Installs NFS utilities
-- Mounts 5 NAS shares with proper TCP configuration:
-  - `/mnt/books` → `/mnt/Storage/Books`
-  - `/mnt/documents` → `/mnt/Storage/Documents`
-  - `/mnt/downloads` → `/mnt/Storage/Downloads`
-  - `/mnt/tv` → `/mnt/Storage/TV`
-  - `/mnt/movies` → `/mnt/Storage/Movies`
-- Configures persistent mounts in `/etc/fstab`
-- Sets up NFSv4 UID/GID mapping (idmapd)
-
-**When to use:**
-- Need to mount TrueNAS storage on your server
-- Setting up a new truenas user account
-
-**Usage:**
-```bash
-curl -O https://raw.githubusercontent.com/josephcooley/server-setup/main/mounts.sh
-chmod +x mounts.sh
-sudo ./mounts.sh
-```
-
-**Verify mounts:**
-```bash
-df -h | grep 192.168.1.100
-ls /mnt/books
-```
-
----
-
-### 3. `setup-server.sh` - Complete Server Setup (Legacy)
-
-**What it does:**
-Combines all functionality from dockge-install.sh and mounts.sh in one script.
-
-**When to use:**
-- Automated one-shot setup of entire server
-- All components needed at once
+Combines all functionality from mount NFS shares and install docker and dockge
 
 **Usage:**
 ```bash
@@ -80,18 +18,9 @@ sudo ./setup-server.sh
 
 ## Quick Start Guide
 
-### Option A: Complete Setup
+### Setup
 ```bash
 sudo ./setup-server.sh
-```
-
-### Option B: Step-by-Step
-```bash
-# Step 1: Install Docker & Dockge
-sudo ./dockge-install.sh
-
-# Step 2: Setup NFS Mounts
-sudo ./mounts.sh
 ```
 
 ---
@@ -150,32 +79,6 @@ If you get "Permission denied":
 sudo chmod 755 /mnt/books /mnt/documents /mnt/downloads /mnt/tv /mnt/movies
 ```
 
----
-
-## Backups
-
-The `mounts.sh` script automatically backs up `/etc/fstab`:
-```bash
-/etc/fstab.backup
-```
-
-Restore if needed:
-```bash
-sudo cp /etc/fstab.backup /etc/fstab
-sudo systemctl daemon-reload
-```
-
----
-
-## Security Considerations
-
-- Scripts require root access via `sudo`
-- Dockge UI should be behind authentication/firewall in production
-- NFS shares transmitted unencrypted (configure on TrueNAS if needed)
-- Consider restricting NFS access by IP in TrueNAS settings
-
----
-
 ## Requirements
 
 - Fresh Ubuntu 20.04 LTS or later
@@ -187,49 +90,14 @@ sudo systemctl daemon-reload
 
 ## What Gets Installed
 
-| Component | Script | Purpose |
-|-----------|--------|---------|
-| Docker CE | dockge-install.sh | Container runtime |
-| Docker Compose | dockge-install.sh | Multi-container orchestration |
-| Dockge | dockge-install.sh | Web UI for Docker management |
-| NFS Utils | mounts.sh | NFS client utilities |
-| Truenas User | mounts.sh | Dedicated service account |
-| Mount Points | mounts.sh | `/mnt/books`, `/mnt/documents`, etc. |
+| Component  | Purpose |
+|-----------|---------|
+| Docker CE |  Container runtime |
+| Docker Compose | Multi-container orchestration |
+| Dockge |  Web UI for Docker management |
+| NFS Utils | NFS client utilities |
+| Mount Points |  `/mnt/books`, `/mnt/documents`, etc. |
 
----
-
-## Manual Commands Reference
-
-If you prefer manual configuration:
-
-### Create Truenas User
-```bash
-sudo groupadd -g 3000 truenas
-sudo useradd -u 3000 -g truenas -m -s /bin/bash truenas
-sudo usermod -aG sudo truenas
-```
-
-### Mount NFS Manually
-```bash
-sudo mount -t nfs -o vers=3,proto=tcp,nolock 192.168.1.100:/mnt/Storage/Books /mnt/books
-```
-
-### Install Docker
-```bash
-curl -fsSL https://get.docker.com -o get-docker.sh
-sudo sh get-docker.sh
-```
-
-### Start Dockge
-```bash
-docker run -d \
-  --name dockge \
-  -p 5001:5001 \
-  -v /var/run/docker.sock:/var/run/docker.sock \
-  louislam/dockge:latest
-```
-
----
 
 ## License
 
