@@ -14,6 +14,17 @@ chmod +x setup-server.sh
 sudo ./setup-server.sh
 ```
 
+### `docker-setup.sh` - Complete Server Setup (Legacy)
+
+**What it does:**
+Combines all functionality from mount NFS shares and install docker and dockge
+
+**Usage:**
+```bash
+curl -O https://raw.githubusercontent.com/josephcooley/server-setup/main/docker-setup.sh
+chmod +x docker-setup.sh
+sudo ./docker-setup.sh
+```
 ---
 
 ## Quick Start Guide
