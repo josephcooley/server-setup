@@ -1,0 +1,51 @@
+services:
+  homeassistant:
+    container_name: homeassistant
+    image: ghcr.io/home-assistant/home-assistant:stable
+    volumes:
+      - /opt/stacks/homeassistant/homeassistant:/config
+      - /etc/localtime:/etc/localtime:ro
+      - /run/dbus:/run/dbus:ro
+    restart: unless-stopped
+    ports:
+      - 8123:8123
+    privileged: true
+    network_mode: host
+    environment:
+      - TZ=America/Los_Angeles
+    depends_on:
+      - mosquitto
+  mosquitto:
+    image: eclipse-mosquitto:latest
+    container_name: mosquitto
+    restart: unless-stopped
+    ports:
+      - 1883:1883
+      - 9001:9001
+    volumes:
+      - /opt/stacks/homeassistant/mosquitto:/mosquitto/data
+  frigate:
+    container_name: frigate
+    image: ghcr.io/blakeblackshear/frigate:stable
+    privileged: true
+    restart: unless-stopped
+    shm_size: 1gb
+    volumes:
+      - /opt/stacks/homeassistant/frigate:/config
+      - /opt/Frigate:/media/frigate
+      - /etc/localtime:/etc/localtime:ro
+    ports:
+      - 5420:5000 # Web UI
+      - 8554:8554 # RTSP restream
+      - 8555:8555/tcp # WebRTC
+      - 8555:8555/udp
+    environment:
+      - TZ=America/Los_Angeles
+      #devices:
+      #- /dev/bus/usb:/dev/bus/usb   # Coral TPU support (optional)
+
+    networks:
+      - frigate_net
+networks:
+  frigate_net:
+    driver: bridge
