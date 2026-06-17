@@ -256,6 +256,7 @@ services:
     restart: unless-stopped
     environment:
       - DOCKGE_STACKS_DIR=/app/data/stacks
+      - DOCKGE_ENABLE_CONSOLE=true
 EOF
 
 print_success "docker-compose.yml created"
