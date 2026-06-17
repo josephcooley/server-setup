@@ -2,10 +2,10 @@
 
 Script for setting up a Ubuntu server with TrueNAS storage mounts and Docker container management.
 
-### `setup-server.sh` - Complete Server Setup (Legacy)
+### `setup-server.sh` - Complete Hermes Server Setup
 
 **What it does:**
-Combines all functionality from mount NFS shares and install docker and dockge
+Combines all functionality hermes and install docker and dockge
 
 **Usage:**
 ```bash
