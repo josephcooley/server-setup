@@ -1,13 +1,13 @@
 ################################################################################
 # TrueNAS Server Setup Script
-# Automates Ubuntu server configuration with NFS mounts and Docker/Dockge setup
+# Automates Ubuntu server configuration with NFS mounts
 # Author: Joseph M. Cooley
 ################################################################################
 #!/bin/bash
 
 # Ubuntu Server Setup Script
-# This script automates the setup of an Ubuntu server with NFS, Docker, and Dockge
-# Run with: sudo bash ubuntu-server-setup.sh
+# This script automates the setup of an Ubuntu server with NFS mounts
+# Run with: sudo bash mounts.sh
 
 set -e  # Exit on error
 
@@ -102,75 +102,6 @@ print_success "NFS filesystems mounted"
 echo ""
 
 # ==========================================
-# 6. Install Docker prerequisites
-# ==========================================
-print_section "Step 6: Installing Docker prerequisites"
-apt install ca-certificates curl gnupg -y
-print_success "Prerequisites installed"
-echo ""
-
-# ==========================================
-# 7. Add Docker repository and install Docker
-# ==========================================
-print_section "Step 7: Installing Docker"
-
-# Create keyrings directory
-install -m 0755 -d /etc/apt/keyrings
-
-# Add Docker GPG key
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-chmod a+r /etc/apt/keyrings/docker.gpg
-
-# Add Docker repository
-echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
-
-# Install Docker packages
-apt update && apt install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin -y
-
-# Enable and start Docker
-systemctl enable --now docker
-
-print_success "Docker installed and enabled"
-echo ""
-
-# ==========================================
-# 8. Install Dockge
-# ==========================================
-print_section "Step 8: Installing Dockge"
-
-# Create Dockge directories
-mkdir -p /opt/dockge
-mkdir -p /opt/stacks
-
-# Create docker-compose.yml for Dockge
-cat > /opt/dockge/docker-compose.yml << 'EOF'
-services:
-  dockge:
-    image: louislam/dockge:latest
-    container_name: dockge
-    ports:
-      - "5001:5001"
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - /opt/dockge/stacks:/app/data/stacks
-    restart: unless-stopped
-    environment:
-      - DOCKGE_STACKS_DIR=/app/data/stacks
-EOF
-
-print_success "Dockge docker-compose.yml created"
-echo ""
-
-# ==========================================
-# 9. Start Dockge
-# ==========================================
-print_section "Step 9: Starting Dockge"
-cd /opt/dockge
-docker compose up -d
-print_success "Dockge container started"
-echo ""
-
-# ==========================================
 # Completion Summary
 # ==========================================
 echo -e "${BLUE}========================================${NC}"
@@ -184,12 +115,8 @@ echo ""
 echo "2. Remount NFS filesystems after editing:"
 echo "   sudo mount -a"
 echo ""
-echo "3. Access Dockge at: http://$(hostname -I | awk '{print $1}'):5001"
-echo ""
 echo -e "${YELLOW}Installed Services:${NC}"
 echo "✓ NFS Client"
-echo "✓ Docker & Docker Compose"
-echo "✓ Dockge (Docker Management)"
 echo ""
 echo -e "${YELLOW}Created Directories:${NC}"
 echo "✓ /mnt/books"
