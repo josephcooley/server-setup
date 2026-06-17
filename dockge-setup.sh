@@ -6,8 +6,8 @@
 #!/bin/bash
 
 # Ubuntu Server Setup Script
-# This script automates the setup of an Ubuntu server with NFS, Docker, and Dockge
-# Run with: sudo bash ubuntu-server-setup.sh
+# This script automates the setup of an Ubuntu server Docker and Dockge
+# Run with: sudo bash dockge-setup.sh
 
 set -e  # Exit on error
 
