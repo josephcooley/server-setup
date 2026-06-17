@@ -9,21 +9,9 @@ Combines all functionality from mount NFS shares and install docker and dockge
 
 **Usage:**
 ```bash
-curl -O https://raw.githubusercontent.com/josephcooley/server-setup/main/setup-server.sh
-chmod +x setup-server.sh
-sudo ./setup-server.sh
-```
-
-### `dockge-setup.sh` - Complete Server Setup (Legacy)
-
-**What it does:**
-Combines all functionality from mount NFS shares and install docker and dockge
-
-**Usage:**
-```bash
-curl -O https://raw.githubusercontent.com/josephcooley/server-setup/main/dockge-setup.sh
-chmod +x dockge-setup.sh
-sudo ./dockge-setup.sh
+curl -O https://raw.githubusercontent.com/josephcooley/server-setup/main/hermes-setup.sh
+chmod +x hermes-setup.sh
+sudo ./hermes-setup.sh
 ```
 ---
 
