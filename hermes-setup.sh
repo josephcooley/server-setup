@@ -8,7 +8,7 @@
 #   - Telegram bot integration (Hermes Agent)
 #
 # Author: Joseph M. Cooley
-# Usage: sudo bash combined-server-setup.sh
+# Usage: sudo bash hermes-setup.sh
 ################################################################################
 
 set -e
