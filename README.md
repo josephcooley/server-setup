@@ -1,112 +1,72 @@
 # TrueNAS Server Setup Scripts
 
-Script for setting up a Ubuntu server with TrueNAS storage mounts and Docker container management.
+Scripts for setting up an Ubuntu server with Docker container management, a Samba share, and optional Hermes Telegram integration.
 
-### `setup-server.sh` - Complete Hermes Server Setup
+## `hermes-setup.sh` - Complete Hermes Server Setup
 
-**What it does:**
-Combines all functionality hermes and install docker and dockge
+This script installs Docker and Dockge, configures a Samba share at `/srv/samba/share`, and writes Hermes Telegram settings when Hermes is available.
 
-**Usage:**
+### Usage
+
 ```bash
-curl -O https://raw.githubusercontent.com/josephcooley/server-setup/main/hermes-setup.sh
-chmod +x hermes-setup.sh
-sudo ./hermes-setup.sh
+sudo bash hermes-setup.sh
 ```
----
-
-## Quick Start Guide
-
-### Setup
-```bash
-sudo ./setup-server.sh
-```
-
----
 
 ## Configuration
 
-### Default Settings
+Edit the configuration block at the top of `hermes-setup.sh` before running if you want to change any defaults:
 
-**NFS Configuration (mounts.sh):**
-- NAS IP: `192.168.1.100`
-- NAS Domain: `truenas.local`
-- Truenas User UID: `3000`
-- Truenas User GID: `3000`
+- `SHARE_DIR`: Samba share path, default `/srv/samba/share`
+- `SHARE_NAME`: SMB share name, default `hermes-share`
+- `SAMBA_USERNAME`: Samba login name, default `Joseph`
+- `SMB_HOSTS_ALLOW`: Allowed LAN ranges for SMB access
+- `DOCKGE_PORT`: Dockge port, default `5001`
+- `DOCKGE_DIR`: Dockge install path, default `/opt/dockge`
+- `STACKS_DIR`: Dockge stacks path, default `/opt/stacks`
 
-**Docker Configuration (dockge-install.sh):**
-- Dockge Port: `5001`
-- Install Path: `/opt/dockge`
-- Stacks Path: `/opt/stacks`
+## What Gets Installed
 
-**To customize:** Edit the `Configuration` section at the top of each script before running.
-
----
+| Component | Purpose |
+| --- | --- |
+| Docker CE | Container runtime |
+| Docker Compose plugin | Multi-container orchestration |
+| Dockge | Web UI for Docker management |
+| Samba | Windows-compatible file sharing |
+| Hermes CLI integration | Telegram gateway config when Hermes is installed |
 
 ## Troubleshooting
 
-### NFS Mounts Failing
+### Dockge
 
-Check network connectivity:
-```bash
-ping 192.168.1.100
-showmount -e 192.168.1.100
-```
+Check the container and logs:
 
-Manual mount test:
-```bash
-sudo mount -t nfs -o vers=3,proto=tcp,nolock 192.168.1.100:/mnt/Storage/Books /mnt/books
-```
-
-### Docker/Dockge Issues
-
-Check Docker status:
 ```bash
 docker ps
 docker logs dockge
 ```
 
-Access system logs:
+### Samba
+
+Validate the Samba configuration and service status:
+
 ```bash
-journalctl -xu docker.service
+testparm -s
+systemctl status smbd
 ```
 
-### Mount Permissions
+### Hermes Telegram Setup
 
-If you get "Permission denied":
-```bash
-sudo chmod 755 /mnt/books /mnt/documents /mnt/downloads /mnt/tv /mnt/movies
-```
+If Telegram is skipped during install, configure it later from the Hermes user's home directory and restart the Hermes gateway.
 
 ## Requirements
 
 - Fresh Ubuntu 20.04 LTS or later
 - Root/sudo access
-- Network access to TrueNAS (default: `192.168.1.100`)
-- TrueNAS with NFS exports configured at `/mnt/Storage/`
-
----
-
-## What Gets Installed
-
-| Component  | Purpose |
-|-----------|---------|
-| Docker CE |  Container runtime |
-| Docker Compose | Multi-container orchestration |
-| Dockge |  Web UI for Docker management |
-| NFS Utils | NFS client utilities |
-| Mount Points |  `/mnt/books`, `/mnt/documents`, etc. |
-
-
-## License
-
-MIT License - Feel free to modify for your needs
+- Network access for package installation
+- Hermes already installed if you want Telegram integration configured automatically
 
 ## Author
 
 Joseph M. Cooley
 
----
-
-**Last Updated:** June 2026  
-**Tested On:** Ubuntu 22.04 LTS, Ubuntu 24.04 LTS
+**Last Updated:** June 2026

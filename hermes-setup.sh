@@ -34,6 +34,17 @@ DOCKGE_PORT="5001"
 DOCKGE_DIR="/opt/dockge"
 STACKS_DIR="/opt/stacks"
 
+# Prefer the invoking user for Hermes config when running via sudo.
+TARGET_USER="${SUDO_USER:-${USER:-root}}"
+if [[ "$TARGET_USER" == "root" ]]; then
+    TARGET_HOME="/root"
+else
+    TARGET_HOME="$(getent passwd "$TARGET_USER" | cut -d: -f6)"
+    if [[ -z "$TARGET_HOME" ]]; then
+        TARGET_HOME="/home/$TARGET_USER"
+    fi
+fi
+
 # ====================================================================
 # COLOR CODES & OUTPUT FUNCTIONS
 # ====================================================================
@@ -243,16 +254,16 @@ mkdir -p "$STACKS_DIR"
 print_success "Directories created: $DOCKGE_DIR, $STACKS_DIR"
 
 print_subsection "Creating docker-compose.yml for Dockge"
-cat > "$DOCKGE_DIR/docker-compose.yml" << 'EOF'
+cat > "$DOCKGE_DIR/docker-compose.yml" << EOF
 services:
   dockge:
     image: louislam/dockge:latest
     container_name: dockge
     ports:
-      - "5001:5001"
+            - "${DOCKGE_PORT}:5001"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - /opt/dockge/stacks:/app/data/stacks
+            - ${STACKS_DIR}:/app/data/stacks
     restart: unless-stopped
     environment:
       - DOCKGE_STACKS_DIR=/app/data/stacks
@@ -344,13 +355,15 @@ else
     print_info "System user '${SAMBA_USERNAME}' already exists"
 fi
 
-# Create Samba user with password (using echo to pipe password)
-echo -e "${SAMBA_PASSWORD}\n${SAMBA_PASSWORD}" | smbpasswd -a "${SAMBA_USERNAME}" 2>/dev/null
-
-if smbpasswd -e "${SAMBA_USERNAME}" &>/dev/null; then
-    print_success "Samba user '${SAMBA_USERNAME}' created/updated with password"
+# Create or update Samba user password without failing on reruns
+if pdbedit -L -u "${SAMBA_USERNAME}" &>/dev/null; then
+    printf '%s\n%s\n' "$SAMBA_PASSWORD" "$SAMBA_PASSWORD" | smbpasswd -s "${SAMBA_USERNAME}" 2>/dev/null
+    smbpasswd -e "${SAMBA_USERNAME}" &>/dev/null || true
+    print_success "Samba user '${SAMBA_USERNAME}' password updated"
 else
-    print_warning "Could not create Samba user - checking if it already exists"
+    printf '%s\n%s\n' "$SAMBA_PASSWORD" "$SAMBA_PASSWORD" | smbpasswd -a -s "${SAMBA_USERNAME}" 2>/dev/null
+    smbpasswd -e "${SAMBA_USERNAME}" &>/dev/null || true
+    print_success "Samba user '${SAMBA_USERNAME}' created with password"
 fi
 
 # Ensure share directory is accessible by the Samba user
@@ -421,12 +434,12 @@ if ! command -v hermes &>/dev/null; then
 else
     print_subsection "Hermes CLI found — proceeding with Telegram setup"
     
-    ENV_FILE="$HOME/.hermes/.env"
+    ENV_FILE="$TARGET_HOME/.hermes/.env"
     
     # Create .env if it doesn't exist
     if [[ ! -f "$ENV_FILE" ]]; then
         print_info "Creating $ENV_FILE"
-        mkdir -p "$HOME/.hermes"
+        mkdir -p "$(dirname "$ENV_FILE")"
         touch "$ENV_FILE"
         chmod 600 "$ENV_FILE"
     fi
