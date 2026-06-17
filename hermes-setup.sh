@@ -173,29 +173,16 @@ else
     TEMP_DIR=$(mktemp -d)
     trap "rm -rf $TEMP_DIR" EXIT
     
-    # Try installation methods in order
-    if curl -fsSL https://raw.githubusercontent.com/heythere-ai/hermes/main/install.sh 2>/dev/null | bash; then
+    # Install Hermes Agent from official Nous Research installer
+    if curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash; then
         print_success "Hermes Agent installed successfully"
-    elif command -v cargo &>/dev/null; then
-        print_info "Installing Hermes Agent via Cargo..."
-        cargo install hermes-agent
-        print_success "Hermes Agent installed via Cargo"
     else
-        print_warning "Could not automatically install Hermes Agent"
+        print_error "Failed to install Hermes Agent from official installer"
         echo ""
-        echo "Install Hermes Agent manually using one of these methods:"
-        echo "  • Via package manager: apt install hermes-agent"
-        echo "  • Via Cargo: cargo install hermes-agent"
-        echo "  • From GitHub: https://github.com/heythere-ai/hermes"
+        echo "Installation URL: curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash"
         echo ""
-        echo "After installing Hermes, you can re-run this script"
-        echo "to complete the Telegram integration setup."
-        echo ""
-        read -p "Continue without Hermes Agent? (y/N): " SKIP_HERMES
-        if [[ "$SKIP_HERMES" != "y" && "$SKIP_HERMES" != "Y" ]]; then
-            print_error "Installation cancelled. Please install Hermes Agent and try again."
-            exit 1
-        fi
+        echo "Please visit: https://hermes-agent.nousresearch.com/ for more information"
+        exit 1
     fi
 fi
 
