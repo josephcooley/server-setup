@@ -9,7 +9,9 @@ This script installs Docker and Dockge, configures a Samba share at `/srv/samba/
 ### Usage
 
 ```bash
-sudo bash hermes-setup.sh
+curl -O https://raw.githubusercontent.com/josephcooley/server-setup/main/hermes-setup.sh
+chmod +x hermes-setup.sh
+sudo ./hermes-setup.sh
 ```
 
 ## Configuration
