@@ -5,7 +5,6 @@
 #   - Install Hermes Agent
 #   - Docker & Dockge setup (Container management)
 #   - SMB network share (Samba)
-#   - Telegram bot integration (Hermes Agent)
 #
 # Author: Joseph M. Cooley
 # Usage: sudo bash hermes-setup.sh
@@ -24,10 +23,6 @@ SMB_WORKGROUP="WORKGROUP"
 SMB_HOSTS_ALLOW="192.168.1.0/24 127.0.0.1"
 SAMBA_USERNAME="Joseph"
 SAMBA_PASSWORD=""  # Leave empty to be prompted at startup
-
-# Telegram settings (fill these in or the script will prompt)
-TELEGRAM_BOT_TOKEN=""
-TELEGRAM_USER_ID=""
 
 # Dockge Configuration
 DOCKGE_PORT="5001"
@@ -130,26 +125,6 @@ if [[ -z "$SAMBA_PASSWORD" ]]; then
     done
 fi
 
-# ====================================================================
-# PROMPT FOR TELEGRAM CREDENTIALS (if not set in configuration)
-# ====================================================================
-
-if [[ -z "$TELEGRAM_BOT_TOKEN" || -z "$TELEGRAM_USER_ID" ]]; then
-    echo ""
-    print_section "TELEGRAM BOT SETUP"
-    echo ""
-    echo "To set up Telegram, you need:"
-    echo "  1. A bot token from @BotFather on Telegram"
-    echo "     (send /newbot, follow the steps, copy the token)"
-    echo "  2. Your Telegram numeric user ID"
-    echo "     (message @userinfobot on Telegram to get it)"
-    echo ""
-    read -p "Paste your Telegram bot token (leave blank to skip): " TELEGRAM_BOT_TOKEN
-    if [[ -n "$TELEGRAM_BOT_TOKEN" ]]; then
-        read -p "Paste your Telegram numeric user ID: " TELEGRAM_USER_ID
-    fi
-fi
-
 echo ""
 echo -e "${BLUE}========================================${NC}"
 echo -e "${BLUE}  COMBINED SERVER SETUP${NC}"
@@ -161,7 +136,6 @@ echo "  2. Docker & Docker Compose"
 echo "  3. Dockge (Docker Management UI)"
 echo "  4. Samba (SMB Network Share)"
 echo "  5. Hermes Agent"
-echo "  6. Telegram Bot Integration"
 echo ""
 
 # ====================================================================
@@ -436,109 +410,6 @@ else
 fi
 
 # ====================================================================
-# STEP 6: TELEGRAM SETUP
-# ====================================================================
-
-print_section "STEP 6: TELEGRAM BOT INTEGRATION"
-
-# Check if Hermes is installed
-if ! command -v hermes &>/dev/null; then
-    print_warning "Hermes CLI not found in PATH"
-    echo ""
-    echo "To configure Telegram after Hermes is installed:"
-    echo "  1. Set TELEGRAM_BOT_TOKEN in ~/.hermes/.env"
-    echo "  2. Set TELEGRAM_HOME_CHANNEL to your user ID in ~/.hermes/.env"
-    echo "  3. Run: hermes gateway restart"
-    echo ""
-    print_info "Skipping Telegram setup — Hermes not yet installed"
-else
-    print_subsection "Hermes CLI found — proceeding with Telegram setup"
-    
-    ENV_FILE="$TARGET_HOME/.hermes/.env"
-    
-    # Create .env if it doesn't exist
-    if [[ ! -f "$ENV_FILE" ]]; then
-        print_info "Creating $ENV_FILE"
-        mkdir -p "$(dirname "$ENV_FILE")"
-        touch "$ENV_FILE"
-        chmod 600 "$ENV_FILE"
-    fi
-    
-    # Check if Telegram is already configured
-    CONFIGURE_TELEGRAM=true
-    if grep -q "^TELEGRAM_BOT_TOKEN=" "$ENV_FILE" 2>/dev/null && \
-       grep -q "^TELEGRAM_HOME_CHANNEL=" "$ENV_FILE" 2>/dev/null; then
-        EXISTING_TOKEN=$(grep "^TELEGRAM_BOT_TOKEN=" "$ENV_FILE" | cut -d= -f2)
-        EXISTING_CHAT=$(grep "^TELEGRAM_HOME_CHANNEL=" "$ENV_FILE" | cut -d= -f2)
-        print_info "Telegram already configured in .env"
-        print_info "  Bot token: ${EXISTING_TOKEN:0:10}..."
-        print_info "  Home chat: $EXISTING_CHAT"
-        
-        read -p "Reconfigure Telegram? (y/N): " RECONFIG
-        if [[ "$RECONFIG" != "y" && "$RECONFIG" != "Y" ]]; then
-            print_info "Keeping existing Telegram config"
-            CONFIGURE_TELEGRAM=false
-        else
-            TELEGRAM_BOT_TOKEN=""
-            TELEGRAM_USER_ID=""
-        fi
-    fi
-    
-    # If already configured and user chose to reconfigure, prompt for new values now
-    if [[ "$CONFIGURE_TELEGRAM" == "true" && -z "$TELEGRAM_BOT_TOKEN" ]]; then
-        read -p "Paste your new Telegram bot token: " TELEGRAM_BOT_TOKEN
-        read -p "Paste your new Telegram numeric user ID: " TELEGRAM_USER_ID
-    fi
-
-    # Write config if we have credentials
-    if [[ "$CONFIGURE_TELEGRAM" == "true" && -n "$TELEGRAM_BOT_TOKEN" && -n "$TELEGRAM_USER_ID" ]]; then
-        print_subsection "Writing Telegram configuration"
-            
-            # Remove old entries
-            sed -i '/^TELEGRAM_BOT_TOKEN=/d' "$ENV_FILE"
-            sed -i '/^TELEGRAM_HOME_CHANNEL=/d' "$ENV_FILE"
-            sed -i '/^TELEGRAM_ALLOWED_USERS=/d' "$ENV_FILE"
-            
-            # Append new entries
-            cat >> "$ENV_FILE" << EOF
-
-# TELEGRAM INTEGRATION
-TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
-TELEGRAM_HOME_CHANNEL=${TELEGRAM_USER_ID}
-TELEGRAM_ALLOWED_USERS=${TELEGRAM_USER_ID}
-EOF
-            
-            chmod 600 "$ENV_FILE"
-            print_success "Telegram config written to $ENV_FILE"
-            
-            print_subsection "Enabling Telegram in Hermes gateway"
-            hermes config set gateway.platforms.telegram.enabled true 2>/dev/null || true
-            
-            print_subsection "Restarting Hermes gateway"
-            if systemctl --user is-active --quiet hermes-gateway 2>/dev/null; then
-                systemctl --user restart hermes-gateway
-                sleep 3
-                if systemctl --user is-active --quiet hermes-gateway; then
-                    print_success "Hermes gateway restarted successfully"
-                else
-                    print_warning "Gateway restart may have failed"
-                    echo "Check with: systemctl --user status hermes-gateway"
-                fi
-            else
-                print_warning "Hermes gateway service not found"
-                echo "Start it manually with:"
-                echo "  systemctl --user start hermes-gateway"
-                echo "  or: hermes gateway start"
-            fi
-            
-            print_success "Telegram bot token: ${TELEGRAM_BOT_TOKEN:0:10}..."
-            print_success "Home chat ID: ${TELEGRAM_USER_ID}"
-    elif [[ "$CONFIGURE_TELEGRAM" == "true" ]]; then
-        print_warning "Telegram credentials not provided — skipping Telegram setup"
-    fi
-fi
-
-# ====================================================================
 # COMPLETION SUMMARY
 # ====================================================================
 
@@ -559,9 +430,7 @@ echo -e "${YELLOW}Installed Services:${NC}"
 echo "  ✓ Docker & Docker Compose"
 echo "  ✓ Dockge (Docker Management UI)"
 echo "  ✓ Samba (SMB Network Share - Authenticated)"
-if command -v hermes &>/dev/null && grep -q "TELEGRAM_BOT_TOKEN=" "$TARGET_HOME/.hermes/.env" 2>/dev/null; then
-    echo "  ✓ Telegram Integration"
-fi
+echo "  ✓ Hermes Agent"
 echo ""
 echo -e "${YELLOW}Next Steps:${NC}"
 echo ""
@@ -575,11 +444,5 @@ echo ""
 echo "3. Mount SMB share on Linux/Mac:"
 echo "   sudo mount -t cifs //${PRIMARY_IP}/${SHARE_NAME} /mnt/${SHARE_NAME} -o username=${SAMBA_USERNAME},password=<your_password>"
 echo ""
-if command -v hermes &>/dev/null; then
-    echo "4. Test Telegram:"
-    echo "   Send a message to your bot on Telegram"
-    echo "   Check logs: journalctl --user -u hermes-gateway -f"
-    echo ""
-fi
 echo -e "${BLUE}========================================${NC}"
 echo ""
