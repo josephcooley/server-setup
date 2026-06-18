@@ -134,8 +134,9 @@ echo "This script will set up:"
 echo "  1. System updates"
 echo "  2. Docker & Docker Compose"
 echo "  3. Dockge (Docker Management UI)"
-echo "  4. Samba (SMB Network Share)"
-echo "  5. Hermes Agent"
+echo "  4. Dockge Stacks (from GitHub)"
+echo "  5. Samba (SMB Network Share)"
+echo "  6. Hermes Agent"
 echo ""
 
 # ====================================================================
@@ -228,10 +229,48 @@ else
 fi
 
 # ====================================================================
-# STEP 4: SAMBA/SMB SETUP
+# STEP 4: DOWNLOAD DOCKGE STACKS FROM GITHUB
 # ====================================================================
 
-print_section "STEP 4: SAMBA/SMB NETWORK SHARE SETUP"
+print_section "STEP 4: DOWNLOAD DOCKGE STACKS FROM GITHUB"
+
+REPO="josephcooley/server-setup"
+BRANCH="main"
+STACKS_RAW_BASE="https://raw.githubusercontent.com/${REPO}/${BRANCH}/stacks"
+GITHUB_API="https://api.github.com/repos/${REPO}/git/trees/${BRANCH}?recursive=1"
+
+print_subsection "Fetching file list from GitHub API"
+API_RESPONSE=$(curl -fsSL "$GITHUB_API")
+if [[ -z "$API_RESPONSE" ]]; then
+    print_error "Failed to reach GitHub API"
+    exit 1
+fi
+
+# Extract all blob paths under stacks/
+STACK_FILES=$(echo "$API_RESPONSE" | grep -oP '"path"\s*:\s*"\Kstacks/[^"]+(?=")' | grep -v '/$')
+
+if [[ -z "$STACK_FILES" ]]; then
+    print_warning "No files found under stacks/ in the repository"
+else
+    print_subsection "Downloading stacks to $STACKS_DIR"
+    while IFS= read -r FULL_PATH; do
+        # Strip leading "stacks/" to get relative path within STACKS_DIR
+        REL_PATH="${FULL_PATH#stacks/}"
+        DEST="$STACKS_DIR/$REL_PATH"
+        mkdir -p "$(dirname "$DEST")"
+        if curl -fsSL "$STACKS_RAW_BASE/$REL_PATH" -o "$DEST"; then
+            print_success "Downloaded: $REL_PATH"
+        else
+            print_warning "Failed to download: $REL_PATH"
+        fi
+    done <<< "$STACK_FILES"
+fi
+
+# ====================================================================
+# STEP 5: SAMBA/SMB SETUP
+# ====================================================================
+
+print_section "STEP 5: SAMBA/SMB NETWORK SHARE SETUP"
 
 print_subsection "Installing Samba packages"
 apt install samba samba-common-bin -y
@@ -368,10 +407,10 @@ else
 fi
 
 # ====================================================================
-# STEP 5: HERMES AGENT INSTALLATION
+# STEP 6: HERMES AGENT INSTALLATION
 # ====================================================================
 
-print_section "STEP 5: HERMES AGENT INSTALLATION"
+print_section "STEP 6: HERMES AGENT INSTALLATION"
 
 # Check if Hermes is already installed
 if command -v hermes &>/dev/null; then
