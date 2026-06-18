@@ -32,7 +32,7 @@ TELEGRAM_USER_ID=""
 # Dockge Configuration
 DOCKGE_PORT="5001"
 DOCKGE_DIR="/opt/dockge"
-STACKS_DIR="/opt/stacks"
+STACKS_DIR="/opt/dockge/stacks"
 
 # Prefer the invoking user for Hermes config when running via sudo.
 TARGET_USER="${SUDO_USER:-${USER:-root}}"
@@ -130,6 +130,26 @@ if [[ -z "$SAMBA_PASSWORD" ]]; then
     done
 fi
 
+# ====================================================================
+# PROMPT FOR TELEGRAM CREDENTIALS (if not set in configuration)
+# ====================================================================
+
+if [[ -z "$TELEGRAM_BOT_TOKEN" || -z "$TELEGRAM_USER_ID" ]]; then
+    echo ""
+    print_section "TELEGRAM BOT SETUP"
+    echo ""
+    echo "To set up Telegram, you need:"
+    echo "  1. A bot token from @BotFather on Telegram"
+    echo "     (send /newbot, follow the steps, copy the token)"
+    echo "  2. Your Telegram numeric user ID"
+    echo "     (message @userinfobot on Telegram to get it)"
+    echo ""
+    read -p "Paste your Telegram bot token (leave blank to skip): " TELEGRAM_BOT_TOKEN
+    if [[ -n "$TELEGRAM_BOT_TOKEN" ]]; then
+        read -p "Paste your Telegram numeric user ID: " TELEGRAM_USER_ID
+    fi
+fi
+
 echo ""
 echo -e "${BLUE}========================================${NC}"
 echo -e "${BLUE}  COMBINED SERVER SETUP${NC}"
@@ -137,10 +157,10 @@ echo -e "${BLUE}========================================${NC}"
 echo ""
 echo "This script will set up:"
 echo "  1. System updates"
-echo "  2. Hermes Agent"
-echo "  3. Docker & Docker Compose"
-echo "  4. Dockge (Docker Management UI)"
-echo "  5. Samba (SMB Network Share)"
+echo "  2. Docker & Docker Compose"
+echo "  3. Dockge (Docker Management UI)"
+echo "  4. Samba (SMB Network Share)"
+echo "  5. Hermes Agent"
 echo "  6. Telegram Bot Integration"
 echo ""
 
@@ -157,60 +177,10 @@ apt upgrade -y
 print_success "System packages updated"
 
 # ====================================================================
-# STEP 2: HERMES AGENT INSTALLATION
+# STEP 2: DOCKER & DOCKER COMPOSE INSTALLATION
 # ====================================================================
 
-print_section "STEP 2: HERMES AGENT INSTALLATION"
-
-# Check if Hermes is already installed
-if command -v hermes &>/dev/null; then
-    HERMES_VERSION=$(hermes --version 2>/dev/null || echo "unknown version")
-    print_success "Hermes Agent is already installed: $HERMES_VERSION"
-else
-    print_subsection "Installing Hermes Agent"
-    
-    # Install Hermes Agent from GitHub releases
-    print_info "Downloading and installing Hermes Agent from GitHub..."
-    
-    # Detect system architecture
-    ARCH=$(uname -m)
-    if [[ "$ARCH" == "x86_64" ]]; then
-        ARCH="amd64"
-    elif [[ "$ARCH" == "aarch64" ]]; then
-        ARCH="arm64"
-    fi
-    
-    # Create temp directory for installation
-    TEMP_DIR=$(mktemp -d)
-    trap "rm -rf $TEMP_DIR" EXIT
-    
-    # Install Hermes Agent from official Nous Research installer
-    if curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash; then
-        print_success "Hermes Agent installed successfully"
-    else
-        print_error "Failed to install Hermes Agent from official installer"
-        echo ""
-        echo "Installation URL: curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash"
-        echo ""
-        echo "Please visit: https://hermes-agent.nousresearch.com/ for more information"
-        exit 1
-    fi
-fi
-
-# Verify Hermes installation
-if command -v hermes &>/dev/null; then
-    print_success "Hermes Agent is ready"
-    print_info "Run 'hermes --help' for available commands"
-    sleep 1
-else
-    print_warning "Hermes Agent not found in PATH — you may need to install it manually"
-fi
-
-# ====================================================================
-# STEP 3: DOCKER & DOCKER COMPOSE INSTALLATION
-# ====================================================================
-
-print_section "STEP 3: DOCKER & DOCKER COMPOSE INSTALLATION"
+print_section "STEP 2: DOCKER & DOCKER COMPOSE INSTALLATION"
 
 print_subsection "Installing Docker prerequisites"
 apt install ca-certificates curl gnupg -y
@@ -243,10 +213,10 @@ else
 fi
 
 # ====================================================================
-# STEP 4: DOCKGE SETUP
+# STEP 3: DOCKGE SETUP
 # ====================================================================
 
-print_section "STEP 4: DOCKGE SETUP"
+print_section "STEP 3: DOCKGE SETUP"
 
 print_subsection "Creating Dockge directories"
 mkdir -p "$DOCKGE_DIR"
@@ -260,10 +230,10 @@ services:
     image: louislam/dockge:latest
     container_name: dockge
     ports:
-            - "${DOCKGE_PORT}:5001"
+      - "${DOCKGE_PORT}:5001"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-            - ${STACKS_DIR}:/app/data/stacks
+      - ${STACKS_DIR}:/app/data/stacks
     restart: unless-stopped
     environment:
       - DOCKGE_STACKS_DIR=/app/data/stacks
@@ -284,10 +254,10 @@ else
 fi
 
 # ====================================================================
-# STEP 5: SAMBA/SMB SETUP
+# STEP 4: SAMBA/SMB SETUP
 # ====================================================================
 
-print_section "STEP 5: SAMBA/SMB NETWORK SHARE SETUP"
+print_section "STEP 4: SAMBA/SMB NETWORK SHARE SETUP"
 
 print_subsection "Installing Samba packages"
 apt install samba samba-common-bin -y
@@ -377,9 +347,17 @@ if grep -q "^[[:space:]]*disable netbios = yes" /etc/samba/smb.conf; then
     print_info "Enabled NetBIOS for Windows discovery"
 fi
 
-# Force SMB2/3 protocol
+# Apply workgroup setting to [global] section
+if grep -q "^[[:space:]]*workgroup" /etc/samba/smb.conf; then
+    sed -i "s/^[[:space:]]*workgroup[[:space:]]*=.*/   workgroup = ${SMB_WORKGROUP}/" /etc/samba/smb.conf
+else
+    sed -i "/^\[global\]/a\   workgroup = ${SMB_WORKGROUP}" /etc/samba/smb.conf
+fi
+print_info "Workgroup set to ${SMB_WORKGROUP}"
+
+# Force SMB2/3 protocol (anchor on [global] section, not a specific line)
 if ! grep -q "server min protocol = SMB2" /etc/samba/smb.conf; then
-    sed -i '/^[[:space:]]*map to guest = bad user/a\   server min protocol = SMB2\n   server max protocol = SMB3\n   client min protocol = SMB2\n   client max protocol = SMB3' /etc/samba/smb.conf
+    sed -i "/^\[global\]/a\   client max protocol = SMB3\n   client min protocol = SMB2\n   server max protocol = SMB3\n   server min protocol = SMB2" /etc/samba/smb.conf
     print_info "Enforced SMB2/3 protocol for Windows 10/11 compatibility"
 fi
 
@@ -416,6 +394,48 @@ else
 fi
 
 # ====================================================================
+# STEP 5: HERMES AGENT INSTALLATION
+# ====================================================================
+
+print_section "STEP 5: HERMES AGENT INSTALLATION"
+
+# Check if Hermes is already installed
+if command -v hermes &>/dev/null; then
+    HERMES_VERSION=$(hermes --version 2>/dev/null || echo "unknown version")
+    print_success "Hermes Agent is already installed: $HERMES_VERSION"
+else
+    print_subsection "Installing Hermes Agent"
+    
+    # Install Hermes Agent from GitHub releases
+    print_info "Downloading and installing Hermes Agent from GitHub..."
+    
+    # Create temp directory for installation
+    TEMP_DIR=$(mktemp -d)
+    trap "rm -rf $TEMP_DIR" EXIT
+    
+    # Install Hermes Agent from official Nous Research installer
+    if curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash; then
+        print_success "Hermes Agent installed successfully"
+    else
+        print_error "Failed to install Hermes Agent from official installer"
+        echo ""
+        echo "Installation URL: curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash"
+        echo ""
+        echo "Please visit: https://hermes-agent.nousresearch.com/ for more information"
+        exit 1
+    fi
+fi
+
+# Verify Hermes installation
+if command -v hermes &>/dev/null; then
+    print_success "Hermes Agent is ready"
+    print_info "Run 'hermes --help' for available commands"
+    sleep 1
+else
+    print_warning "Hermes Agent not found in PATH — you may need to install it manually"
+fi
+
+# ====================================================================
 # STEP 6: TELEGRAM SETUP
 # ====================================================================
 
@@ -445,6 +465,7 @@ else
     fi
     
     # Check if Telegram is already configured
+    CONFIGURE_TELEGRAM=true
     if grep -q "^TELEGRAM_BOT_TOKEN=" "$ENV_FILE" 2>/dev/null && \
        grep -q "^TELEGRAM_HOME_CHANNEL=" "$ENV_FILE" 2>/dev/null; then
         EXISTING_TOKEN=$(grep "^TELEGRAM_BOT_TOKEN=" "$ENV_FILE" | cut -d= -f2)
@@ -456,30 +477,22 @@ else
         read -p "Reconfigure Telegram? (y/N): " RECONFIG
         if [[ "$RECONFIG" != "y" && "$RECONFIG" != "Y" ]]; then
             print_info "Keeping existing Telegram config"
+            CONFIGURE_TELEGRAM=false
         else
             TELEGRAM_BOT_TOKEN=""
             TELEGRAM_USER_ID=""
         fi
     fi
     
-    # If not already configured or user chose to reconfigure
-    if [[ -z "$TELEGRAM_BOT_TOKEN" ]]; then
-        echo ""
-        echo "To set up Telegram, you need:"
-        echo "  1. A bot token from @BotFather on Telegram"
-        echo "     (send /newbot, follow the steps, copy the token)"
-        echo "  2. Your Telegram numeric user ID"
-        echo "     (message @userinfobot on Telegram to get it)"
-        echo ""
-        
-        read -p "Paste your Telegram bot token: " TELEGRAM_BOT_TOKEN
-        read -p "Paste your Telegram numeric user ID: " TELEGRAM_USER_ID
-        
-        if [[ -z "$TELEGRAM_BOT_TOKEN" || -z "$TELEGRAM_USER_ID" ]]; then
-            print_error "Both bot token and user ID are required"
-            print_warning "Skipping Telegram setup"
-        else
-            print_subsection "Writing Telegram configuration"
+    # If already configured and user chose to reconfigure, prompt for new values now
+    if [[ "$CONFIGURE_TELEGRAM" == "true" && -z "$TELEGRAM_BOT_TOKEN" ]]; then
+        read -p "Paste your new Telegram bot token: " TELEGRAM_BOT_TOKEN
+        read -p "Paste your new Telegram numeric user ID: " TELEGRAM_USER_ID
+    fi
+
+    # Write config if we have credentials
+    if [[ "$CONFIGURE_TELEGRAM" == "true" && -n "$TELEGRAM_BOT_TOKEN" && -n "$TELEGRAM_USER_ID" ]]; then
+        print_subsection "Writing Telegram configuration"
             
             # Remove old entries
             sed -i '/^TELEGRAM_BOT_TOKEN=/d' "$ENV_FILE"
@@ -520,7 +533,8 @@ EOF
             
             print_success "Telegram bot token: ${TELEGRAM_BOT_TOKEN:0:10}..."
             print_success "Home chat ID: ${TELEGRAM_USER_ID}"
-        fi
+    elif [[ "$CONFIGURE_TELEGRAM" == "true" ]]; then
+        print_warning "Telegram credentials not provided — skipping Telegram setup"
     fi
 fi
 
@@ -545,7 +559,7 @@ echo -e "${YELLOW}Installed Services:${NC}"
 echo "  ✓ Docker & Docker Compose"
 echo "  ✓ Dockge (Docker Management UI)"
 echo "  ✓ Samba (SMB Network Share - Authenticated)"
-if command -v hermes &>/dev/null && grep -q "TELEGRAM_BOT_TOKEN=" "$HOME/.hermes/.env" 2>/dev/null; then
+if command -v hermes &>/dev/null && grep -q "TELEGRAM_BOT_TOKEN=" "$TARGET_HOME/.hermes/.env" 2>/dev/null; then
     echo "  ✓ Telegram Integration"
 fi
 echo ""
