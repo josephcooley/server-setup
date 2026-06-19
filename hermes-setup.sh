@@ -17,7 +17,7 @@ set -e
 # ====================================================================
 
 # SMB/Samba Configuration
-SHARE_DIR="/srv/samba/share"
+SHARE_DIR="/opt/dockge/stacks/hermes/workspace"
 SHARE_NAME="hermes-share"
 SMB_WORKGROUP="WORKGROUP"
 SMB_HOSTS_ALLOW="192.168.1.0/24 127.0.0.1"
