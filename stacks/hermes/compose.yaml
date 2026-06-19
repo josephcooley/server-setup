@@ -1,0 +1,65 @@
+services:
+  hermes-agent:
+    image: nousresearch/hermes-agent:latest
+    container_name: hermes-agent
+    command: gateway run
+    ports:
+      - 127.0.0.1:8642:8642
+    volumes:
+      # Shared Hermes home directory (persistent config, memory, sessions)
+      - ${HERMES_BASE}/hermes-home:/home/hermes/.hermes
+      # Agent source — now a Docker-managed named volume
+      - hermes-agent-src:/opt/hermes
+    environment:
+      - HERMES_HOME=/home/hermes/.hermes
+      - HERMES_UID=${UID}
+      - HERMES_GID=${GID}
+    restart: unless-stopped
+    networks:
+      - hermes-net
+  hermes-dashboard:
+    image: nousresearch/hermes-agent:latest
+    container_name: hermes-dashboard
+    command: dashboard --host 0.0.0.0 --insecure
+    ports:
+      - 9119:9119
+    volumes:
+      - ${HERMES_BASE}/hermes-home:/home/hermes/.hermes
+    environment:
+      - HERMES_HOME=/home/hermes/.hermes
+      - HERMES_UID=${UID}
+      - HERMES_GID=${GID}
+      - GATEWAY_HEALTH_URL=http://hermes-agent:8642
+    depends_on:
+      - hermes-agent
+    restart: unless-stopped
+    networks:
+      - hermes-net
+  hermes-webui:
+    image: ghcr.io/nesquena/hermes-webui:latest
+    container_name: hermes-webui
+    depends_on:
+      - hermes-agent
+    ports:
+      - 8787:8787
+    volumes:
+      # Shared Hermes home
+      - ${HERMES_BASE}/hermes-home:/home/hermeswebui/.hermes
+      # Agent source (read-only) — WebUI installs deps from here
+      - hermes-agent-src:/home/hermeswebui/.hermes/hermes-agent:ro
+      # Workspace directory
+      - ${HERMES_WORKSPACE}:/workspace
+    environment:
+      - HERMES_WEBUI_HOST=0.0.0.0
+      - HERMES_WEBUI_PORT=8787
+      - HERMES_WEBUI_STATE_DIR=/home/hermeswebui/.hermes/webui
+      - WANTED_UID=${UID}
+      - WANTED_GID=${GID}
+    restart: unless-stopped
+    networks:
+      - hermes-net
+networks:
+  hermes-net:
+    driver: bridge
+volumes:
+  hermes-agent-src: null
