@@ -10,6 +10,8 @@ services:
       - ${HERMES_BASE}/hermes-home:/home/hermes/.hermes
       # Agent source — now a Docker-managed named volume
       - hermes-agent-src:/opt/hermes
+      #Host mount
+      - /:/host:rw
     environment:
       - HERMES_HOME=/home/hermes/.hermes
       - HERMES_UID=${UID}
@@ -49,6 +51,8 @@ services:
       - hermes-agent-src:/home/hermeswebui/.hermes/hermes-agent:ro
       # Workspace directory
       - ${HERMES_WORKSPACE}:/workspace
+      #Host mount
+      - /:/host:rw
     environment:
       - HERMES_WEBUI_HOST=0.0.0.0
       - HERMES_WEBUI_PORT=8787
