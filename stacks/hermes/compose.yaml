@@ -38,6 +38,7 @@ services:
     networks:
       - hermes-net
   hermes-webui:
+    user: root
     image: ghcr.io/nesquena/hermes-webui:latest
     container_name: hermes-webui
     depends_on:
