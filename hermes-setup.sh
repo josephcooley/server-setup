@@ -407,48 +407,6 @@ else
 fi
 
 # ====================================================================
-# STEP 6: HERMES AGENT INSTALLATION
-# ====================================================================
-
-print_section "STEP 6: HERMES AGENT INSTALLATION"
-
-# Check if Hermes is already installed
-if command -v hermes &>/dev/null; then
-    HERMES_VERSION=$(hermes --version 2>/dev/null || echo "unknown version")
-    print_success "Hermes Agent is already installed: $HERMES_VERSION"
-else
-    print_subsection "Installing Hermes Agent"
-    
-    # Install Hermes Agent from GitHub releases
-    print_info "Downloading and installing Hermes Agent from GitHub..."
-    
-    # Create temp directory for installation
-    TEMP_DIR=$(mktemp -d)
-    trap "rm -rf $TEMP_DIR" EXIT
-    
-    # Install Hermes Agent from official Nous Research installer
-    if curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash; then
-        print_success "Hermes Agent installed successfully"
-    else
-        print_error "Failed to install Hermes Agent from official installer"
-        echo ""
-        echo "Installation URL: curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash"
-        echo ""
-        echo "Please visit: https://hermes-agent.nousresearch.com/ for more information"
-        exit 1
-    fi
-fi
-
-# Verify Hermes installation
-if command -v hermes &>/dev/null; then
-    print_success "Hermes Agent is ready"
-    print_info "Run 'hermes --help' for available commands"
-    sleep 1
-else
-    print_warning "Hermes Agent not found in PATH — you may need to install it manually"
-fi
-
-# ====================================================================
 # COMPLETION SUMMARY
 # ====================================================================
 
@@ -469,7 +427,6 @@ echo -e "${YELLOW}Installed Services:${NC}"
 echo "  ✓ Docker & Docker Compose"
 echo "  ✓ Dockge (Docker Management UI)"
 echo "  ✓ Samba (SMB Network Share - Authenticated)"
-echo "  ✓ Hermes Agent"
 echo ""
 echo -e "${YELLOW}Next Steps:${NC}"
 echo ""
