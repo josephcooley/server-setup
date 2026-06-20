@@ -8,10 +8,8 @@ services:
     volumes:
       # Shared Hermes home directory (persistent config, memory, sessions)
       - ${HERMES_BASE}/hermes-home:/home/hermes/.hermes
-      # Agent source — now a Docker-managed named volume
-      - hermes-agent-src:/opt/hermes
-      #Host mount
-      - /:/host:rw
+      - /opt/dockge:/opt/dockge
+      - /var/run/docker.sock:/var/run/docker.sock
     environment:
       - HERMES_HOME=/home/hermes/.hermes
       - HERMES_UID=${UID}
@@ -48,12 +46,9 @@ services:
     volumes:
       # Shared Hermes home
       - ${HERMES_BASE}/hermes-home:/home/hermeswebui/.hermes
-      # Agent source (read-only) — WebUI installs deps from here
-      - hermes-agent-src:/home/hermeswebui/.hermes/hermes-agent:ro
       # Workspace directory
       - ${HERMES_WORKSPACE}:/workspace
-      #Host mount
-      - /:/host:rw
+      - hermes-agent-src:/home/hermeswebui/.hermes/hermes-agent:ro
     environment:
       - HERMES_WEBUI_HOST=0.0.0.0
       - HERMES_WEBUI_PORT=8787
