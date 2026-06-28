@@ -14,7 +14,7 @@ services:
           memory: 10G
 
     ports:
-      - "8080:8080"         # Web UI and API port
+      - "8085:8080"         # Web UI and API port
 
     volumes:
       # Mount directory containing your model files
