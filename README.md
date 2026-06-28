@@ -1,10 +1,10 @@
 # TrueNAS Server Setup Scripts
 
-Scripts for setting up an Ubuntu server with Docker container management, a Samba share, and optional Hermes Telegram integration.
+Scripts for setting up an Ubuntu server with Docker container management, a Samba share, Hermes configuration, and NFS mounts.
 
-## `hermes-setup.sh` - Complete Hermes Server Setup
+## `hermes-setup.sh` - Hermes Server Setup
 
-This script installs Docker and Dockge, configures a Samba share at `/srv/samba/share`, and writes Hermes Telegram settings when Hermes is available.
+This script installs Docker and Dockge, configures the Samba share used by Hermes at `/opt/dockge/stacks/hermes/workspace`, creates the Samba user, and writes the Samba share configuration for Hermes-related access.
 
 ### Usage
 
@@ -18,13 +18,21 @@ sudo ./hermes-setup.sh
 
 Edit the configuration block at the top of `hermes-setup.sh` before running if you want to change any defaults:
 
-- `SHARE_DIR`: Samba share path, default `/srv/samba/share`
-- `SHARE_NAME`: SMB share name, default `hermes-share`
-- `SAMBA_USERNAME`: Samba login name, default `Joseph`
+- `SHARE_DIR`: Samba share path, default `/opt/dockge/stacks/hermes/workspace`
+- `SHARE_NAME`: SMB share name, default `workspace`
+- `SAMBA_USERNAME`: Samba login name, default `joseph`
 - `SMB_HOSTS_ALLOW`: Allowed LAN ranges for SMB access
 - `DOCKGE_PORT`: Dockge port, default `5001`
 - `DOCKGE_DIR`: Dockge install path, default `/opt/dockge`
 - `STACKS_DIR`: Dockge stacks path, default `/opt/stacks`
+
+## `dockge-setup.sh` - Dockge Only
+
+This script only installs Docker, creates the Dockge directories, writes the Dockge compose file, and starts Dockge. It does not configure Samba, Hermes, or NFS mounts.
+
+## `mounts.sh` - NFS Mounts Only
+
+This script only installs the NFS client, creates the local mount points, updates `/etc/fstab`, and mounts the NFS shares. It does not install Docker, Dockge, Samba, or Hermes.
 
 ## What Gets Installed
 
@@ -34,7 +42,8 @@ Edit the configuration block at the top of `hermes-setup.sh` before running if y
 | Docker Compose plugin | Multi-container orchestration |
 | Dockge | Web UI for Docker management |
 | Samba | Windows-compatible file sharing |
-| Hermes CLI integration | Telegram gateway config when Hermes is installed |
+| Hermes-related Samba setup | Samba share and user configuration for Hermes |
+| NFS client | Mount support for `mounts.sh` |
 
 ## Troubleshooting
 
@@ -56,9 +65,9 @@ testparm -s
 systemctl status smbd
 ```
 
-### Hermes Telegram Setup
+### Hermes Setup
 
-If Telegram is skipped during install, configure it later from the Hermes user's home directory and restart the Hermes gateway.
+If you change the Hermes Samba credentials or share path, update `hermes-setup.sh` before rerunning it.
 
 ## Requirements
 
