@@ -1,0 +1,72 @@
+services:
+  llama-cpp:
+    image: ghcr.io/ggerganov/llama.cpp:full
+    container_name: llama-cpp-server
+    # Resource limits for i5-8500T (6 cores) with 16GB RAM
+    # Reserve ~2GB for OS, allocate ~12GB for container
+    deploy:
+      resources:
+        limits:
+          cpus: '5'        # Use 5 of 6 cores, leaving headroom
+          memory: 12G        # Allocate 12GB, leaving 4GB for OS
+        reservations:
+          cpus: '4'
+          memory: 10G
+
+    ports:
+      - "8080:8080"         # Web UI and API port
+
+    volumes:
+      # Mount directory containing your model files
+      - ./models:/models
+      # Optional: persist any generation outputs
+      - ./outputs:/outputs
+
+    # Environment variables for CPU optimization
+    environment:
+      # CPU threading - i5-8500T has 6 cores
+      LLAMA_THREAD_COUNT: '6'
+      # Number of threads for batch processing
+      LLAMA_THREAD_BATCH: '512'
+      # Context size (adjust based on model and available RAM)
+      # Start conservative: 2048 tokens
+      LLAMA_CONTEXT_SIZE: '2048'
+
+    # Command to run llama.cpp server
+    # Adjust model path and parameters as needed
+    command: >
+      /usr/local/bin/llama-server
+      --model /models/model.gguf
+      --threads 6
+      --ctx-size 2048
+      --batch-size 512
+      --n-predict 256
+      --host 0.0.0.0
+      --port 8080
+
+    # Restart policy
+    restart: unless-stopped
+    
+    # CPU affinity (optional - pins process to specific cores)
+    # Uncomment if you want better performance isolation
+    # cpuset: "0-5"
+
+    # Health check
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  # Optional: named volume for model persistence
+  models:
+    driver: local
