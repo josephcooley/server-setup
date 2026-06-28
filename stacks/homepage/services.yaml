@@ -30,7 +30,7 @@
         widget:
           type: homeassistant
           url: http://192.168.1.12:8123
-          key: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiI4YjVlZjc1YzA0ODk0MDMzYTQ2MWIwZDMxNjNlMDlmMCIsImlhdCI6MTc4MjE5MTM2OSwiZXhwIjoyMDk3NTUxMzY5fQ.pY0iUZ3-Z_uYLKKUnzlpv6Qr3dvm3PfeMKwzC92et4Q
+          key: ##########
     - Frigate:
         href: http://192.168.1.12:5420
         description: NVR and object detection
