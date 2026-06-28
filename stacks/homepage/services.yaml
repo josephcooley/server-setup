@@ -30,7 +30,7 @@
         widget:
           type: homeassistant
           url: http://192.168.1.12:8123
-          key: ##########
+          key: ${HOMEPAGE_HOME_ASSISTANT_KEY}
     - Frigate:
         href: http://192.168.1.12:5420
         description: NVR and object detection
@@ -56,4 +56,4 @@
           type: filebrowser
           url: http://192.168.1.12:8383
           username: Joseph
-          password: ##############
+          password: ${HOMEPAGE_FILEBROWSER_PASSWORD}
