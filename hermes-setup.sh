@@ -148,6 +148,7 @@ print_section "STEP 1: SYSTEM UPDATE"
 print_subsection "Updating package lists and upgrading system"
 apt update
 apt upgrade -y
+timedatectl set-timezone America/Los_Angeles
 
 print_success "System packages updated"
 
