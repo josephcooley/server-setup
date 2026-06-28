@@ -1,4 +1,4 @@
-# TrueNAS Server Setup Scripts
+# Hermes Server Setup Scripts
 
 Scripts for setting up an Ubuntu server with Docker container management, a Samba share, Hermes configuration, and NFS mounts.
 
