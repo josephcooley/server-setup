@@ -136,11 +136,10 @@ echo "  2. Docker & Docker Compose"
 echo "  3. Dockge (Docker Management UI)"
 echo "  4. Dockge Stacks (from GitHub)"
 echo "  5. Samba (SMB Network Share)"
-echo "  6. Hermes Agent"
 echo ""
 
 # ====================================================================
-# STEP 1: SYSTEM UPDATE (consolidated)
+# STEP 1: SYSTEM UPDATE AND TIMEZONE CONFIGURATION
 # ====================================================================
 
 print_section "STEP 1: SYSTEM UPDATE"
@@ -148,7 +147,10 @@ print_section "STEP 1: SYSTEM UPDATE"
 print_subsection "Updating package lists and upgrading system"
 apt update
 apt upgrade -y
-timedatectl set-timezone America/Los_Angeles
+apt autoremove -y
+apt autoclean -y
+
+timedatectl set-timezone America/Los_Angeles #set timezone for los angeles
 
 print_success "System packages updated"
 

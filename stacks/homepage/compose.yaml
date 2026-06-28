@@ -5,7 +5,7 @@ services:
     environment:
       HOMEPAGE_ALLOWED_HOSTS: 192.168.1.12:3000,localhost:3000,homepage.local
     ports:
-      - 3000:3000
+      - 8080:3000
     volumes:
       - /opt/dockge/stacks/homepage:/app/config
     restart: unless-stopped
