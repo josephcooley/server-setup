@@ -249,8 +249,11 @@ if [[ -z "$API_RESPONSE" ]]; then
     exit 1
 fi
 
-# Extract all blob paths under stacks/
-STACK_FILES=$(echo "$API_RESPONSE" | grep -oP '"path"\s*:\s*"\Kstacks/[^"]+(?=")' | grep -v '/$')
+# Extract only blob paths under stacks/ so directories are not treated as downloads.
+STACK_FILES=$(echo "$API_RESPONSE" | awk '
+    /"path"[[:space:]]*:[[:space:]]*"stacks\// { path=$0; sub(/^.*"path"[[:space:]]*:[[:space:]]*"/, "", path); sub(/".*$/, "", path) }
+    /"type"[[:space:]]*:[[:space:]]*"blob"/ && path ~ /^stacks\// { print path; path="" }
+')
 
 if [[ -z "$STACK_FILES" ]]; then
     print_warning "No files found under stacks/ in the repository"
