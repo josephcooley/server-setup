@@ -198,6 +198,7 @@ print_section "STEP 3: DOCKGE SETUP"
 
 print_subsection "Creating Dockge directories"
 mkdir -p "$DOCKGE_DIR"
+chown -R joseph:joseph "$DOCKGE_DIR"
 mkdir -p "$STACKS_DIR"
 print_success "Directories created: $DOCKGE_DIR, $STACKS_DIR"
 
@@ -222,6 +223,7 @@ print_success "docker-compose.yml created"
 
 print_subsection "Starting Dockge container"
 cd "$DOCKGE_DIR"
+chown -R joseph:joseph "$DOCKGE_DIR"
 docker compose up -d
 sleep 3
 

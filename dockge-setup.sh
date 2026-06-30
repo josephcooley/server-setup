@@ -91,6 +91,7 @@ print_section "Step 3: Installing Dockge"
 
 # Create Dockge directories
 mkdir -p /opt/dockge
+chown -R joseph:joseph /opt/dockge
 mkdir -p /opt/stacks
 
 # Create docker-compose.yml for Dockge
@@ -112,6 +113,8 @@ EOF
 
 print_success "Dockge docker-compose.yml created"
 echo ""
+chown -R joseph:joseph /opt/dockge
+
 
 # ==========================================
 # 4. Start Dockge
