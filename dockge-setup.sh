@@ -1,144 +1,235 @@
+#!/bin/bash
 ################################################################################
-# TrueNAS Server Setup Script
-# Automates Ubuntu server configuration with Docker/Dockge setup
+# Dockge Server Setup Script
+# Automates Ubuntu server configuration with Docker and Dockge setup
 # Author: Joseph M. Cooley
 ################################################################################
-#!/bin/bash
 
-# Ubuntu Server Setup Script
-# This script automates the setup of an Ubuntu server Docker and Dockge
-# Run with: sudo bash dockge-setup.sh
+set -e
 
-set -e  # Exit on error
+# ====================================================================
+# CONFIGURATION (edit these before running)
+# ====================================================================
+
+DOCKGE_PORT="5001"
+DOCKGE_DIR="/opt/dockge"
+STACKS_DIR="/opt/dockge/stacks"
 
 TARGET_USER="${SUDO_USER:-${USER:-root}}"
 TARGET_GROUP="$(id -gn "$TARGET_USER")"
 
-# Color codes for output
+# ====================================================================
+# COLOR CODES & OUTPUT FUNCTIONS
+# ====================================================================
+
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# Check if script is run as root
+print_section() {
+  echo ""
+  echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+  echo -e "${BLUE}>>> $1${NC}"
+  echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+  echo ""
+}
+
+print_subsection() {
+  echo -e "${BLUE}→ $1${NC}"
+}
+
+print_success() {
+  echo -e "${GREEN}✓ $1${NC}"
+}
+
+print_info() {
+  echo -e "${GREEN}[INFO]${NC}  $1"
+}
+
+print_warning() {
+  echo -e "${YELLOW}⚠ $1${NC}"
+}
+
+print_error() {
+  echo -e "${RED}✗ $1${NC}"
+}
+
+# ====================================================================
+# PRE-FLIGHT CHECKS
+# ====================================================================
+
+print_section "PRE-FLIGHT CHECKS"
+
 if [[ $EUID -ne 0 ]]; then
-   echo -e "${RED}This script must be run as root (use sudo)${NC}"
-   exit 1
+  print_error "This script must be run as root (use sudo)"
+  exit 1
 fi
 
+print_success "Running with root privileges"
+
+PRIMARY_IP=$(hostname -I | awk '{print $1}')
+print_success "Primary IP: $PRIMARY_IP"
+
+echo ""
 echo -e "${BLUE}========================================${NC}"
-echo -e "${BLUE}Docker/Dockge Setup Script${NC}"
+echo -e "${BLUE}  DOCKGE SETUP${NC}"
 echo -e "${BLUE}========================================${NC}"
 echo ""
+echo "This script will set up:"
+echo "  1. System updates"
+echo "  2. Docker & Docker Compose"
+echo "  3. Dockge"
+echo "  4. Dockge stacks from GitHub"
+echo ""
 
-# Function to print section headers
-print_section() {
-    echo -e "${BLUE}>>> $1${NC}"
-}
+# ====================================================================
+# STEP 1: SYSTEM UPDATE
+# ====================================================================
 
-# Function to print success messages
-print_success() {
-    echo -e "${GREEN}✓ $1${NC}"
-}
+print_section "STEP 1: SYSTEM UPDATE"
 
-# Function to print warnings
-print_warning() {
-    echo -e "${YELLOW}⚠ $1${NC}"
-}
+print_subsection "Updating package lists and upgrading system"
+apt update
+apt upgrade -y
+apt autoremove -y
+apt autoclean -y
 
-# ==========================================
-# 1. System Update
-# ==========================================
-print_section "Step 1: Updating system packages"
-apt update && apt upgrade -y
+timedatectl set-timezone America/Los_Angeles #set timezone for los angeles
+
 print_success "System packages updated"
-echo ""
 
-# ==========================================
-# 1. Install Docker prerequisites
-# ==========================================
-print_section "Step 1: Installing Docker prerequisites"
+# ====================================================================
+# STEP 2: DOCKER & DOCKER COMPOSE INSTALLATION
+# ====================================================================
+
+print_section "STEP 2: DOCKER & DOCKER COMPOSE INSTALLATION"
+
+print_subsection "Installing Docker prerequisites"
 apt install ca-certificates curl gnupg -y
 print_success "Prerequisites installed"
-echo ""
 
-# ==========================================
-# 2. Add Docker repository and install Docker
-# ==========================================
-print_section "Step 2: Installing Docker"
-
-# Create keyrings directory
+print_subsection "Adding Docker GPG key and repository"
 install -m 0755 -d /etc/apt/keyrings
-
-# Add Docker GPG key
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
 chmod a+r /etc/apt/keyrings/docker.gpg
 
-# Add Docker repository
 echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
 
-# Install Docker packages
-apt update && apt install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin -y
+print_success "Docker repository configured"
 
-# Enable and start Docker
+print_subsection "Installing Docker packages"
+apt update
+apt install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin -y
+
+print_subsection "Enabling Docker service"
 systemctl enable --now docker
 
 print_success "Docker installed and enabled"
-echo ""
 
-# ==========================================
-# 3. Install Dockge
-# ==========================================
-print_section "Step 3: Installing Dockge"
+if docker --version &>/dev/null; then
+  DOCKER_VERSION=$(docker --version)
+  print_success "$DOCKER_VERSION"
+else
+  print_warning "Could not verify Docker installation"
+fi
 
-# Create Dockge directories
-mkdir -p /opt/dockge
-chown -R "$TARGET_USER:$TARGET_GROUP" /opt/dockge
-mkdir -p /opt/stacks
+# ====================================================================
+# STEP 3: DOCKGE SETUP
+# ====================================================================
 
-# Create docker-compose.yml for Dockge
-cat > /opt/dockge/docker-compose.yml << 'EOF'
+print_section "STEP 3: DOCKGE SETUP"
+
+print_subsection "Creating Dockge directories"
+mkdir -p "$DOCKGE_DIR"
+mkdir -p "$STACKS_DIR"
+chown -R "$TARGET_USER:$TARGET_GROUP" "$DOCKGE_DIR"
+print_success "Directories created: $DOCKGE_DIR, $STACKS_DIR"
+
+print_subsection "Creating docker-compose.yml for Dockge"
+cat > "$DOCKGE_DIR/docker-compose.yml" << EOF
 services:
   dockge:
     image: louislam/dockge:latest
     container_name: dockge
     ports:
-      - "5001:5001"
+      - "${DOCKGE_PORT}:5001"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - /opt/dockge/stacks:/app/data/stacks
+      - ${STACKS_DIR}:/app/data/stacks
     restart: unless-stopped
     environment:
       - DOCKGE_STACKS_DIR=/app/data/stacks
       - DOCKGE_ENABLE_CONSOLE=true
 EOF
 
-print_success "Dockge docker-compose.yml created"
-echo ""
-chown -R "$TARGET_USER:$TARGET_GROUP" /opt/dockge
+print_success "docker-compose.yml created"
 
-
-# ==========================================
-# 4. Start Dockge
-# ==========================================
-print_section "Step 4: Starting Dockge"
-cd /opt/dockge
+print_subsection "Starting Dockge container"
+cd "$DOCKGE_DIR"
+chown -R "$TARGET_USER:$TARGET_GROUP" "$DOCKGE_DIR"
 docker compose up -d
-print_success "Dockge container started"
-echo ""
+sleep 3
 
-# ==========================================
-# Completion Summary
-# ==========================================
-echo -e "${BLUE}========================================${NC}"
-echo -e "${GREEN}Setup Complete!${NC}"
-echo -e "${BLUE}========================================${NC}"
+if docker ps | grep -q dockge; then
+  print_success "Dockge container is running"
+else
+  print_warning "Dockge container status could not be verified"
+fi
+
+# ====================================================================
+# STEP 4: DOWNLOAD DOCKGE STACKS FROM GITHUB
+# ====================================================================
+
+print_section "STEP 4: DOWNLOAD DOCKGE STACKS FROM GITHUB"
+
+REPO="josephcooley/server-setup"
+BRANCH="main"
+STACKS_RAW_BASE="https://raw.githubusercontent.com/${REPO}/${BRANCH}/stacks"
+GITHUB_API="https://api.github.com/repos/${REPO}/git/trees/${BRANCH}?recursive=1"
+
+print_subsection "Fetching file list from GitHub API"
+API_RESPONSE=$(curl -fsSL "$GITHUB_API")
+if [[ -z "$API_RESPONSE" ]]; then
+  print_error "Failed to reach GitHub API"
+  exit 1
+fi
+
+STACK_FILES=$(echo "$API_RESPONSE" | awk '
+  /"path"[[:space:]]*:[[:space:]]*"stacks\// { path=$0; sub(/^.*"path"[[:space:]]*:[[:space:]]*"/, "", path); sub(/".*$/, "", path) }
+  /"type"[[:space:]]*:[[:space:]]*"blob"/ && path ~ /^stacks\// { print path; path="" }
+')
+
+if [[ -z "$STACK_FILES" ]]; then
+  print_warning "No files found under stacks/ in the repository"
+else
+  print_subsection "Downloading stacks to $STACKS_DIR"
+  while IFS= read -r FULL_PATH; do
+    REL_PATH="${FULL_PATH#stacks/}"
+    DEST="$STACKS_DIR/$REL_PATH"
+    mkdir -p "$(dirname "$DEST")"
+    if curl -fsSL "$STACKS_RAW_BASE/$REL_PATH" -o "$DEST"; then
+      print_success "Downloaded: $REL_PATH"
+    else
+      print_warning "Failed to download: $REL_PATH"
+    fi
+  done <<< "$STACK_FILES"
+fi
+
+# ====================================================================
+# COMPLETION SUMMARY
+# ====================================================================
+
+print_section "SETUP COMPLETE"
+
+echo -e "${GREEN}Dockge is installed and configured!${NC}"
 echo ""
-echo -e "${YELLOW}Important Next Steps:${NC}"
-echo "Access Dockge at: http://$(hostname -I | awk '{print $1}'):5001"
+echo -e "${YELLOW}Access Point:${NC}"
+echo "  • Dockge:    http://${PRIMARY_IP}:${DOCKGE_PORT}"
 echo ""
 echo -e "${YELLOW}Installed Services:${NC}"
-echo "✓ Docker & Docker Compose"
-echo "✓ Dockge (Docker Management)"
+echo "  ✓ Docker & Docker Compose"
+echo "  ✓ Dockge (Docker Management UI)"
+echo "  ✓ Dockge stacks synced from GitHub"
 echo ""

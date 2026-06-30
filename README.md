@@ -28,7 +28,7 @@ Edit the configuration block at the top of `hermes-setup.sh` before running if y
 
 ## `dockge-setup.sh` - Dockge Only
 
-This script only installs Docker, creates the Dockge directories, writes the Dockge compose file, and starts Dockge. It does not configure Samba, Hermes, or NFS mounts.
+This script installs Docker, creates the Dockge directories, writes the Dockge compose file, starts Dockge, and syncs the stack files from this repository. It does not configure Samba, Hermes, or NFS mounts.
 
 ## `mounts.sh` - NFS Mounts Only
 
