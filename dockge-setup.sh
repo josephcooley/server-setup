@@ -11,6 +11,9 @@
 
 set -e  # Exit on error
 
+TARGET_USER="${SUDO_USER:-${USER:-root}}"
+TARGET_GROUP="$(id -gn "$TARGET_USER")"
+
 # Color codes for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -91,7 +94,7 @@ print_section "Step 3: Installing Dockge"
 
 # Create Dockge directories
 mkdir -p /opt/dockge
-chown -R joseph:joseph /opt/dockge
+chown -R "$TARGET_USER:$TARGET_GROUP" /opt/dockge
 mkdir -p /opt/stacks
 
 # Create docker-compose.yml for Dockge
@@ -113,7 +116,7 @@ EOF
 
 print_success "Dockge docker-compose.yml created"
 echo ""
-chown -R joseph:joseph /opt/dockge
+chown -R "$TARGET_USER:$TARGET_GROUP" /opt/dockge
 
 
 # ==========================================

@@ -21,7 +21,6 @@ SHARE_DIR="/opt/dockge/stacks/hermes/workspace"
 SHARE_NAME="workspace"
 SMB_WORKGROUP="WORKGROUP"
 SMB_HOSTS_ALLOW="192.168.1.0/24 127.0.0.1"
-SAMBA_USERNAME="joseph"
 SAMBA_PASSWORD=""  # Leave empty to be prompted at startup
 
 # Dockge Configuration
@@ -31,6 +30,7 @@ STACKS_DIR="/opt/dockge/stacks"
 
 # Prefer the invoking user for Hermes config when running via sudo.
 TARGET_USER="${SUDO_USER:-${USER:-root}}"
+TARGET_GROUP="$(id -gn "$TARGET_USER")"
 if [[ "$TARGET_USER" == "root" ]]; then
     TARGET_HOME="/root"
 else
@@ -39,11 +39,11 @@ else
         TARGET_HOME="/home/$TARGET_USER"
     fi
 fi
+SAMBA_USERNAME="$TARGET_USER"
 
 # ====================================================================
 # COLOR CODES & OUTPUT FUNCTIONS
 # ====================================================================
-
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -223,7 +223,7 @@ print_success "docker-compose.yml created"
 
 print_subsection "Starting Dockge container"
 cd "$DOCKGE_DIR"
-chown -R joseph:joseph "$DOCKGE_DIR"
+chown -R "$TARGET_USER:$TARGET_GROUP" "$DOCKGE_DIR"
 docker compose up -d
 sleep 3
 
