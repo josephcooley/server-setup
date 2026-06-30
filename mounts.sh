@@ -47,10 +47,17 @@ print_warning() {
 # ==========================================
 # 1. System Update
 # ==========================================
-print_section "Step 1: Updating system packages"
-apt update && apt upgrade -y
-print_success "System packages updated"
-echo ""
+print_section "STEP 1: SYSTEM UPDATE"
+
+print_subsection "Updating package lists and upgrading system"
+apt update
+apt upgrade -y
+apt autoremove -y
+apt autoclean -y
+
+timedatectl set-timezone America/Los_Angeles #set timezone for los angeles
+
+print_success "System packages updated" 
 
 # ==========================================
 # 2. Install NFS
