@@ -1,0 +1,18 @@
+# 1. Fix the root directory permissions
+#sudo chmod 755 /opt/dockge/stacks/hermes/workspace/dashboards
+# 2. Fix all subdirectories permissions
+#sudo find /opt/dockge/stacks/hermes/workspace/dashboards -type d -exec chmod 755 {} \;
+# 3. Fix all file permissions
+#sudo find /opt/dockge/stacks/hermes/workspace/dashboards -type f -exec chmod 644 {} \;
+
+services:
+  dashboards:
+    image: httpd:2.4-alpine
+    container_name: dashboards  
+    ports:
+      - 8080:80
+    volumes:
+      - /opt/dockge/stacks/hermes/workspace/dashboards:/usr/local/apache2/htdocs:ro
+    restart: unless-stopped
+
+networks: {}
