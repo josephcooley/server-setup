@@ -1,3 +1,5 @@
+#sudo docker exec -it hermes-agent /bin/bash
+#then hermes setup OR hermes model etc.
 services:
   hermes-agent:
     image: nousresearch/hermes-agent:latest
