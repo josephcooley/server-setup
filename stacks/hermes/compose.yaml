@@ -20,7 +20,7 @@ services:
       - 127.0.0.1:8642:8642
       - 9119:9119
     volumes:
-      - ${HERMES_BASE}/hermes-home:/home/hermes/.hermes
+      - ${HERMES_BASE}:/home/hermes/.hermes
       - hermes-agent-src:/opt/hermes
       - /opt/dockge:/opt/dockge
       - hermes-data:/opt/data
@@ -42,7 +42,7 @@ services:
     ports:
       - 8787:8787
     volumes:
-      - ${HERMES_BASE}/hermes-home:/home/hermeswebui/.hermes
+      - ${HERMES_BASE}:/home/hermeswebui/.hermes
       - hermes-agent-src:/home/hermeswebui/.hermes/hermes-agent:ro
       - ${HERMES_BASE}/workspace:/workspace
     environment:
