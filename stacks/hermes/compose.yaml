@@ -1,5 +1,16 @@
 #sudo docker exec -it hermes-agent /bin/bash
 #then hermes setup OR hermes model etc.
+
+#Must generate password hash
+#docker exec -it hermes-agent bash
+#python -c "from plugins.dashboard_auth.basic import hash_password; print(hash_password('your-password'))"
+#Then add to hermes config.yaml and restart hermes
+# dashboard:
+#  bind: 0.0.0.0
+#  basic_auth:
+#    username: joseph
+#    password_hash: "<paste-your-hash-here>"
+   
 services:
   hermes-agent:
     image: nousresearch/hermes-agent:latest
@@ -7,38 +18,23 @@ services:
     command: gateway run
     ports:
       - 127.0.0.1:8642:8642
-    volumes:
-      # Shared Hermes home directory (persistent config, memory, sessions)
-      - ${HERMES_BASE}/hermes-home:/home/hermes/.hermes
-      - /opt/dockge:/opt/dockge
-      - /var/run/docker.sock:/var/run/docker.sock
-    environment:
-      - HERMES_HOME=/home/hermes/.hermes
-      - HERMES_UID=${UID}
-      - HERMES_GID=${GID}
-    restart: unless-stopped
-    networks:
-      - hermes-net
-  hermes-dashboard:
-    image: nousresearch/hermes-agent:latest
-    container_name: hermes-dashboard
-    command: dashboard --host 0.0.0.0 --insecure
-    ports:
       - 9119:9119
     volumes:
       - ${HERMES_BASE}/hermes-home:/home/hermes/.hermes
+      - hermes-agent-src:/opt/hermes
+      - /opt/dockge:/opt/dockge
+      - hermes-data:/opt/data
+      - /var/run/docker.sock:/var/run/docker.sock
     environment:
+      - HERMES_DASHBOARD=1
       - HERMES_HOME=/home/hermes/.hermes
       - HERMES_UID=${UID}
       - HERMES_GID=${GID}
-      - GATEWAY_HEALTH_URL=http://hermes-agent:8642
-    depends_on:
-      - hermes-agent
     restart: unless-stopped
     networks:
       - hermes-net
+  #Hermes Webui
   hermes-webui:
-    user: root
     image: ghcr.io/nesquena/hermes-webui:latest
     container_name: hermes-webui
     depends_on:
@@ -46,15 +42,15 @@ services:
     ports:
       - 8787:8787
     volumes:
-      # Shared Hermes home
       - ${HERMES_BASE}/hermes-home:/home/hermeswebui/.hermes
-      # Workspace directory
-      - ${HERMES_WORKSPACE}:/workspace
       - hermes-agent-src:/home/hermeswebui/.hermes/hermes-agent:ro
+      - ${HERMES_BASE}/workspace:/workspace
     environment:
+      - HERMES_WEBUI_PASSWORD=${HERMES_PASS}
       - HERMES_WEBUI_HOST=0.0.0.0
       - HERMES_WEBUI_PORT=8787
       - HERMES_WEBUI_STATE_DIR=/home/hermeswebui/.hermes/webui
+      - HERMES_API_URL=http://hermes-agent:8642
       - WANTED_UID=${UID}
       - WANTED_GID=${GID}
     restart: unless-stopped
@@ -65,3 +61,4 @@ networks:
     driver: bridge
 volumes:
   hermes-agent-src: null
+  hermes-data: null
