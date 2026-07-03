@@ -1,0 +1,42 @@
+services:
+  paperless-redis:
+    image: redis:7
+    container_name: paperless-redis
+    restart: unless-stopped
+    volumes:
+      - /mnt/Storage/AppData/stacks/paperlessngx/redis:/data
+  paperless-db:
+    image: postgres:15
+    container_name: paperless-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: paperless
+      POSTGRES_USER: paperless
+      POSTGRES_PASSWORD: paperless
+    volumes:
+      - /mnt/Storage/AppData/stacks/paperlessngx/postgres:/var/lib/postgresql/data
+  paperless:
+    image: ghcr.io/paperless-ngx/paperless-ngx:latest
+    container_name: paperless
+    depends_on:
+      - paperless-db
+      - paperless-redis
+    ports:
+      - 8010:8000
+    restart: unless-stopped
+    environment:
+      PAPERLESS_REDIS: redis://paperless-redis:6379
+      PAPERLESS_DBHOST: paperless-db
+      PAPERLESS_DBNAME: paperless
+      PAPERLESS_DBUSER: paperless
+      PAPERLESS_DBPASS: paperless
+      PAPERLESS_TIME_ZONE: America/Los_Angeles
+      USERMAP_UID: 1000
+      USERMAP_GID: 1000
+      PAPERLESS_OCR_LANGUAGE: eng
+    volumes:
+      - /mnt/Storage/Documents/paperless/data:/usr/src/paperless/data
+      - /mnt/Storage/Documents/paperless/media:/usr/src/paperless/media
+      - /mnt/Storage/Documents/paperless/export:/usr/src/paperless/export
+      - /mnt/Storage/Documents/paperless/consume:/usr/src/paperless/consume
+networks: {}
