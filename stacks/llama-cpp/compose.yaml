@@ -1,3 +1,5 @@
+#This container needs some work, should probably move the actual model its running to the .env file
+
 services:
   llama-cpp:
     image: ghcr.io/ggml-org/llama.cpp:full
