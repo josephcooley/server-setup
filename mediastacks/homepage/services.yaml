@@ -74,11 +74,15 @@
           password: ${KOMGA_PASSWORD}
           key: ${KOMGA_API_KEY}
 
-- Grimmory Stack:
+- Book Aquisition:
     - Grimmory:
       href: http://${HOST}:6060
         description: Grimmory book management app
         icon: mdi-book-open-page-variant
+    - Shelfmark:
+      href: http://${HOST}:8084
+        description: Sheflmark book management app
+        icon: mdi-book-open-page-variant    
 
 - Downloads:
     - qBittorrent:
