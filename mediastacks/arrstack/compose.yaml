@@ -1,0 +1,81 @@
+services:
+  sabnzbd:
+    image: lscr.io/linuxserver/sabnzbd:latest
+    container_name: sabnzbd
+    volumes:
+      - /mnt/Storage/AppData/stacks/sabnzbd:/config
+      - /mnt/Storage/Downloads:/downloads
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/Los_Angeles
+    ports:
+      - 8585:8080
+    restart: unless-stopped
+  sonarr:
+    image: lscr.io/linuxserver/sonarr:latest
+    container_name: sonarr
+    volumes:
+      - /mnt/Storage/AppData/stacks/sonarr:/config
+      - /mnt/Storage/TV:/TV
+      - /mnt/Storage/Downloads:/downloads
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/Los_Angeles
+    ports:
+      - 8989:8989
+    restart: unless-stopped
+  radarr:
+    image: lscr.io/linuxserver/radarr:latest
+    container_name: radarr
+    volumes:
+      - /mnt/Storage/AppData/stacks/radarr:/config
+      - /mnt/Storage/Movies:/movies
+      - /mnt/Storage/Downloads:/downloads
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/Los_Angeles
+    ports:
+      - 7878:7878
+    restart: unless-stopped
+  prowlarr:
+    image: lscr.io/linuxserver/prowlarr:latest
+    container_name: prowlarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/Los_Angeles
+    volumes:
+      - /mnt/Storage/AppData/stacks/prowlarr:/config
+      - /mnt/Storage:/Storage
+      - /mnt/Storage/Downloads:/downloads
+    ports:
+      - 9696:9696
+    restart: unless-stopped
+  whisparr:
+    image: ghcr.io/thespad/whisparr:latest
+    container_name: whisparr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/Los_Angeles
+    volumes:
+      - /mnt/Storage/AppData/stacks/whisparr/config:/config
+      - /mnt/Storage/Downloads/Other:/Other
+      - /mnt/Storage/Downloads:/downloads
+    ports:
+      - 6969:6969
+    restart: unless-stopped
+  profilarr:
+    image: santiagosayshey/profilarr:latest
+    container_name: profilarr
+    volumes:
+      - /mnt/Storage/AppData/stacks/profilarr:/config
+    environment:
+      - TZ=America/Los_Angeles
+    ports:
+      - 6868:6868
+    restart: unless-stopped
+networks: {}
