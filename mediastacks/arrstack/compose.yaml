@@ -3,8 +3,8 @@ services:
     image: lscr.io/linuxserver/sabnzbd:latest
     container_name: sabnzbd
     volumes:
-      - /mnt/Storage/AppData/stacks/sabnzbd:/config
-      - /mnt/Storage/Downloads:/downloads
+      - ${STACKROOT}/stacks/sabnzbd:/config
+      - ${SHAREROOT}/Downloads:/downloads
     environment:
       - PUID=1000
       - PGID=1000
@@ -16,9 +16,9 @@ services:
     image: lscr.io/linuxserver/sonarr:latest
     container_name: sonarr
     volumes:
-      - /mnt/Storage/AppData/stacks/sonarr:/config
-      - /mnt/Storage/TV:/TV
-      - /mnt/Storage/Downloads:/downloads
+      - ${STACKROOT}/stacks/sonarr:/config
+      - ${SHAREROOT}/TV:/TV
+      - ${SHAREROOT}/Downloads:/downloads
     environment:
       - PUID=1000
       - PGID=1000
@@ -30,9 +30,9 @@ services:
     image: lscr.io/linuxserver/radarr:latest
     container_name: radarr
     volumes:
-      - /mnt/Storage/AppData/stacks/radarr:/config
-      - /mnt/Storage/Movies:/movies
-      - /mnt/Storage/Downloads:/downloads
+      - ${STACKROOT}/stacks/radarr:/config
+      - ${SHAREROOT}/Movies:/movies
+      - ${SHAREROOT}/Downloads:/downloads
     environment:
       - PUID=1000
       - PGID=1000
@@ -48,31 +48,17 @@ services:
       - PGID=1000
       - TZ=America/Los_Angeles
     volumes:
-      - /mnt/Storage/AppData/stacks/prowlarr:/config
-      - /mnt/Storage:/Storage
-      - /mnt/Storage/Downloads:/downloads
+      - ${STACKROOT}/stacks/prowlarr:/config
+      - ${SHAREROOT}:/Storage
+      - ${SHAREROOT}/Downloads:/downloads
     ports:
       - 9696:9696
-    restart: unless-stopped
-  whisparr:
-    image: ghcr.io/thespad/whisparr:latest
-    container_name: whisparr
-    environment:
-      - PUID=1000
-      - PGID=1000
-      - TZ=America/Los_Angeles
-    volumes:
-      - /mnt/Storage/AppData/stacks/whisparr/config:/config
-      - /mnt/Storage/Downloads/Other:/Other
-      - /mnt/Storage/Downloads:/downloads
-    ports:
-      - 6969:6969
     restart: unless-stopped
   profilarr:
     image: santiagosayshey/profilarr:latest
     container_name: profilarr
     volumes:
-      - /mnt/Storage/AppData/stacks/profilarr:/config
+      - ${STACKROOT}/stacks/profilarr:/config
     environment:
       - TZ=America/Los_Angeles
     ports:

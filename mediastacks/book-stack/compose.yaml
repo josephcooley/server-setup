@@ -1,0 +1,48 @@
+services:
+#calibre-web is a web app for managing and reading eBooks. It provides a user-friendly interface for accessing your Calibre library from any device with a web browser. The configuration provided sets up the Calibre-Web service with the necessary environment variables, volume mappings, and port settings.
+  calibre-web:
+    image: lscr.io/linuxserver/calibre-web:latest
+    container_name: calibre-web
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/Los_Angeles
+      - DOCKER_MODS=linuxserver/mods:universal-calibre #optional
+      - OAUTHLIB_RELAX_TOKEN_SCOPE=1 #optional
+    volumes:
+      - ${STACKROOT}/stacks/calibre-web:/config
+      - ${SHAREROOT}/Books/eBooks:/books
+    ports:
+      - 8083:8083
+    restart: unless-stopped
+
+#AudioBookshelf is a self-hosted audiobook server that allows you to manage and stream your audiobooks. It is an alternative to Calibre-Web for audiobook management. The configuration provided sets up the Audiobookshelf service with the necessary environment variables, volume mappings, and port settings.
+  audiobookshelf:
+    image: ghcr.io/advplyr/audiobookshelf:latest
+    container_name: audiobookshelf
+    ports:
+      - 13378:80
+    volumes:
+      - ${STACKROOT}/stacks/audiobookshelf:/config
+      - ${SHAREROOT}/Books/Audiobooks:/audiobooks
+      - ${SHAREROOT}/Books/Audiobooks:/metadata
+    restart: unless-stopped
+
+#komga is a self-hosted media server for managing and reading comics and manga. It provides a web interface for accessing your comic library from any device with a web browser. The configuration provided sets up the Komga service with the necessary environment variables, volume mappings, and port settings.    
+services:
+  komga:
+    container_name: komga
+    image: gotson/komga
+    container_name: komga
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/Los_Angeles
+    volumes:
+      - ${STACKROOT}/stacks/komga:/config
+      - ${SHAREROOT}/Books/Comics:/data
+    ports:
+      - 25600:25600
+    restart: unless-stopped
+networks: {}
+
