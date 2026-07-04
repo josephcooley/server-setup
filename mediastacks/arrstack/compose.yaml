@@ -1,67 +1,58 @@
 services:
-  sabnzbd:
-    image: lscr.io/linuxserver/sabnzbd:latest
-    container_name: sabnzbd
-    volumes:
-      - ${STACKROOT}/stacks/sabnzbd:/config
-      - ${SHAREROOT}/Downloads:/downloads
+  #calibre-web is a web app for managing and reading eBooks. It provides a user-friendly interface for accessing your Calibre library from any device with a web browser. The configuration provided sets up the Calibre-Web service with the necessary environment variables, volume mappings, and port settings.
+  calibre-web:
+    image: lscr.io/linuxserver/calibre-web:latest
+    container_name: calibre-web
     environment:
       - PUID=1000
       - PGID=1000
       - TZ=America/Los_Angeles
-    ports:
-      - 8585:8080
-    restart: unless-stopped
-  sonarr:
-    image: lscr.io/linuxserver/sonarr:latest
-    container_name: sonarr
+      - DOCKER_MODS=linuxserver/mods:universal-calibre #optional
+      - OAUTHLIB_RELAX_TOKEN_SCOPE=1 #optional
     volumes:
-      - ${STACKROOT}/stacks/sonarr:/config
-      - ${SHAREROOT}/TV:/TV
-      - ${SHAREROOT}/Downloads:/downloads
-    environment:
-      - PUID=1000
-      - PGID=1000
-      - TZ=America/Los_Angeles
+      - ${STACKROOT}/stacks/calibre-web:/config
+      - ${SHAREROOT}/Books/eBooks:/books
     ports:
-      - 8989:8989
+      - 8083:8083
     restart: unless-stopped
-  radarr:
-    image: lscr.io/linuxserver/radarr:latest
-    container_name: radarr
+  #AudioBookshelf is a self-hosted audiobook server that allows you to manage and stream your audiobooks. It is an alternative to Calibre-Web for audiobook management. The configuration provided sets up the Audiobookshelf service with the necessary environment variables, volume mappings, and port settings.
+  audiobookshelf:
+    image: ghcr.io/advplyr/audiobookshelf:latest
+    container_name: audiobookshelf
+    ports:
+      - 13378:80
     volumes:
-      - ${STACKROOT}/stacks/radarr:/config
-      - ${SHAREROOT}/Movies:/movies
-      - ${SHAREROOT}/Downloads:/downloads
-    environment:
-      - PUID=1000
-      - PGID=1000
-      - TZ=America/Los_Angeles
-    ports:
-      - 7878:7878
+      - ${STACKROOT}/stacks/audiobookshelf:/config
+      - ${SHAREROOT}/Books/Audiobooks:/audiobooks
+      - ${SHAREROOT}/Books/Audiobooks:/metadata
     restart: unless-stopped
-  prowlarr:
-    image: lscr.io/linuxserver/prowlarr:latest
-    container_name: prowlarr
+  #komga is a self-hosted media server for managing and reading comics and manga. It provides a web interface for accessing your comic library from any device with a web browser. The configuration provided sets up the Komga service with the necessary environment variables, volume mappings, and port settings.    
+  komga:
+    image: gotson/komga
+    container_name: komga
     environment:
       - PUID=1000
       - PGID=1000
       - TZ=America/Los_Angeles
     volumes:
-      - ${STACKROOT}/stacks/prowlarr:/config
-      - ${SHAREROOT}:/Storage
-      - ${SHAREROOT}/Downloads:/downloads
+      - ${STACKROOT}/stacks/komga:/config
+      - ${SHAREROOT}/Books/Comics:/data
     ports:
-      - 9696:9696
+      - 25600:25600
     restart: unless-stopped
-  profilarr:
-    image: santiagosayshey/profilarr:latest
-    container_name: profilarr
-    volumes:
-      - ${STACKROOT}/stacks/profilarr:/config
+  #shelfmark is a self-hosted application for managing and organizing your book collection. It provides a web interface for accessing your book library from any device with a web browser. The configuration provided sets up the Shelfmark service with the necessary environment variables, volume mappings, and port settings.
+  shelfmark:
+    image: ghcr.io/calibrain/shelfmark:latest
+    container_name: shelfmark
     environment:
-      - TZ=America/Los_Angeles
+      - PUID=1000
+      - PGID=1000
     ports:
-      - 6868:6868
+      - 8084:8084
     restart: unless-stopped
+    volumes:
+      - ${SHAREROOT}/Books/ebooks:/books # Default destination for book downloads
+      - ${STACKROOT}/stacks/shelfmark:/config # App configuration
+      # Required for torrent / usenet - path must match your download client's volume exactly
+      - ${SHAREROOT}/Downloads:${SHAREROOT}/Downloads
 networks: {}
