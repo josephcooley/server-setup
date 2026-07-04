@@ -24,7 +24,31 @@ Edit the configuration block at the top of `hermes-setup.sh` before running if y
 - `SMB_HOSTS_ALLOW`: Allowed LAN ranges for SMB access
 - `DOCKGE_PORT`: Dockge port, default `5001`
 - `DOCKGE_DIR`: Dockge install path, default `/opt/dockge`
-- `STACKS_DIR`: Dockge stacks path, default `/opt/stacks`
+- `STACKS_DIR`: Dockge stacks path, default `/opt/dockge/stacks`
+
+## `install-mediastacks.sh` - Media Stacks Only
+
+This script downloads the `mediastacks/` contents from this repository directly into `/opt/dockge/stacks/` so the stack files are available at the root of Dockge's stacks directory instead of inside a `mediastacks` subfolder.
+
+### Usage
+
+```bash
+curl -O https://raw.githubusercontent.com/josephcooley/server-setup/main/install-mediastacks.sh
+chmod +x install-mediastacks.sh
+sudo ./install-mediastacks.sh
+```
+
+## `install-stacks.sh` - General Stacks Only
+
+This script downloads the `stacks/` contents from this repository directly into `/opt/dockge/stacks/` so the standard Dockge stack files are available at the root of the stacks directory.
+
+### Usage
+
+```bash
+curl -O https://raw.githubusercontent.com/josephcooley/server-setup/main/install-stacks.sh
+chmod +x install-stacks.sh
+sudo ./install-stacks.sh
+```
 
 ## `dockge-setup.sh` - Dockge Only
 
