@@ -1,6 +1,5 @@
 services:
-  #calibre-web is a web app for managing and reading eBooks. It provides a user-friendly interface for accessing your Calibre library from any device with a web browser. The configuration provided sets up the Calibre-Web service with the necessary environment variables, volume mappings, and port settings.
-  calibre-web:
+  #calibre-web is a web app for managing and reading eBooks.
     image: lscr.io/linuxserver/calibre-web:latest
     container_name: calibre-web
     environment:
@@ -15,7 +14,7 @@ services:
     ports:
       - 8083:8083
     restart: unless-stopped
-  #AudioBookshelf is a self-hosted audiobook server that allows you to manage and stream your audiobooks. It is an alternative to Calibre-Web for audiobook management. The configuration provided sets up the Audiobookshelf service with the necessary environment variables, volume mappings, and port settings.
+  #AudioBookshelf is a self-hosted audiobook server that allows you to manage and stream your audiobooks.
   audiobookshelf:
     image: ghcr.io/advplyr/audiobookshelf:latest
     container_name: audiobookshelf
@@ -26,7 +25,7 @@ services:
       - ${SHAREROOT}/Books/Audiobooks:/audiobooks
       - ${SHAREROOT}/Books/Audiobooks:/metadata
     restart: unless-stopped
-  #komga is a self-hosted media server for managing and reading comics and manga. It provides a web interface for accessing your comic library from any device with a web browser. The configuration provided sets up the Komga service with the necessary environment variables, volume mappings, and port settings.    
+  #komga is a self-hosted media server for managing and reading comics and manga.     
   komga:
     image: gotson/komga
     container_name: komga
@@ -40,7 +39,7 @@ services:
     ports:
       - 25600:25600
     restart: unless-stopped
-  #shelfmark is a self-hosted application for managing and organizing your book collection. It provides a web interface for accessing your book library from any device with a web browser. The configuration provided sets up the Shelfmark service with the necessary environment variables, volume mappings, and port settings.
+  #shelfmark is a self-hosted application for managing and organizing your book collection. 
   shelfmark:
     image: ghcr.io/calibrain/shelfmark:latest
     container_name: shelfmark
