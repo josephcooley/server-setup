@@ -2,10 +2,9 @@
 ################################################################################
 # Combined Server Setup Script
 # Automates Ubuntu server configuration with:
-#   - Install Hermes Agent
 #   - Docker & Dockge setup (Container management)
+#   - Downloads Dockge stacks from GitHub
 #   - SMB network share (Samba)
-#
 # Author: Joseph M. Cooley
 # Usage: sudo bash hermes-setup.sh
 ################################################################################
@@ -98,6 +97,37 @@ PRIMARY_IP=$(hostname -I | awk '{print $1}')
 print_success "Primary IP: $PRIMARY_IP"
 
 # ====================================================================
+# SELECT STACK FAMILY
+# ====================================================================
+
+print_section "STACK FAMILY SELECTION"
+
+while true; do
+    echo "Choose which stack folder to download in step 4:"
+    echo "  1) Hermes stacks"
+    echo "  2) Media stacks"
+    read -rp "Enter choice [1-2]: " STACK_CHOICE
+
+    case "$STACK_CHOICE" in
+        1)
+            STACK_SOURCE_DIR="hermesstacks"
+            STACK_SOURCE_LABEL="Hermes stacks"
+            break
+            ;;
+        2)
+            STACK_SOURCE_DIR="mediastacks"
+            STACK_SOURCE_LABEL="Media stacks"
+            break
+            ;;
+        *)
+            print_error "Invalid choice. Enter 1 or 2."
+            ;;
+    esac
+done
+
+print_success "Selected: ${STACK_SOURCE_LABEL}"
+
+# ====================================================================
 # PROMPT FOR SAMBA PASSWORD (if not set in configuration)
 # ====================================================================
 
@@ -134,7 +164,7 @@ echo "This script will set up:"
 echo "  1. System updates"
 echo "  2. Docker & Docker Compose"
 echo "  3. Dockge (Docker Management UI)"
-echo "  4. Dockge Stacks (from GitHub)"
+echo "  4. ${STACK_SOURCE_LABEL} (from GitHub)"
 echo "  5. Samba (SMB Network Share)"
 echo ""
 
@@ -234,15 +264,16 @@ else
 fi
 
 # ====================================================================
-# STEP 4: DOWNLOAD DOCKGE STACKS FROM GITHUB
+# STEP 4: DOWNLOAD SELECTED STACKS FROM GITHUB
 # ====================================================================
 
-print_section "STEP 4: DOWNLOAD DOCKGE STACKS FROM GITHUB"
+print_section "STEP 4: DOWNLOAD ${STACK_SOURCE_LABEL} FROM GITHUB"
 
 REPO="josephcooley/server-setup"
 BRANCH="main"
-STACKS_RAW_BASE="https://raw.githubusercontent.com/${REPO}/${BRANCH}/stacks"
+STACKS_RAW_BASE="https://raw.githubusercontent.com/${REPO}/${BRANCH}"
 GITHUB_API="https://api.github.com/repos/${REPO}/git/trees/${BRANCH}?recursive=1"
+SOURCE_PREFIX="${STACK_SOURCE_DIR}/"
 
 print_subsection "Fetching file list from GitHub API"
 API_RESPONSE=$(curl -fsSL "$GITHUB_API")
@@ -251,26 +282,45 @@ if [[ -z "$API_RESPONSE" ]]; then
     exit 1
 fi
 
-# Extract only blob paths under stacks/ so directories are not treated as downloads.
-STACK_FILES=$(echo "$API_RESPONSE" | awk '
-    /"path"[[:space:]]*:[[:space:]]*"stacks\// { path=$0; sub(/^.*"path"[[:space:]]*:[[:space:]]*"/, "", path); sub(/".*$/, "", path) }
-    /"type"[[:space:]]*:[[:space:]]*"blob"/ && path ~ /^stacks\// { print path; path="" }
+# Extract only blob paths under the selected source folder so directories are not treated as downloads.
+STACK_FILES=$(echo "$API_RESPONSE" | awk -v prefix="$SOURCE_PREFIX" '
+    $0 ~ "\"path\"[[:space:]]*:[[:space:]]*\"" prefix {
+        path=$0
+        sub(/^.*"path"[[:space:]]*:[[:space:]]*"/, "", path)
+        sub(/".*$/, "", path)
+    }
+    /"type"[[:space:]]*:[[:space:]]*"blob"/ && path ~ ("^" prefix) {
+        print path
+        path=""
+    }
 ')
 
 if [[ -z "$STACK_FILES" ]]; then
-    print_warning "No files found under stacks/ in the repository"
+    print_warning "No files found under ${STACK_SOURCE_DIR}/ in the repository"
 else
-    print_subsection "Downloading stacks to $STACKS_DIR"
-    while IFS= read -r FULL_PATH; do
-        # Strip leading "stacks/" to get relative path within STACKS_DIR
-        REL_PATH="${FULL_PATH#stacks/}"
-        DEST="$STACKS_DIR/$REL_PATH"
-        mkdir -p "$(dirname "$DEST")"
-        if curl -fsSL "$STACKS_RAW_BASE/$REL_PATH" -o "$DEST"; then
-            print_success "Downloaded: $REL_PATH"
-        else
-            print_warning "Failed to download: $REL_PATH"
+    print_subsection "Downloading ${STACK_SOURCE_LABEL} into $STACKS_DIR"
+    download_file() {
+        local rel_path="$1"
+        local dest_path="$2"
+
+        if [[ -e "$dest_path" ]]; then
+            print_info "Skipping existing file: ${rel_path}"
+            return 0
         fi
+
+        mkdir -p "$(dirname "$dest_path")"
+        if curl -fsSL "${STACKS_RAW_BASE}/${rel_path}" -o "$dest_path"; then
+            print_success "Downloaded: ${rel_path}"
+        else
+            print_warning "Failed to download: ${rel_path}"
+        fi
+    }
+
+    while IFS= read -r FULL_PATH; do
+        REL_PATH="${FULL_PATH#${SOURCE_PREFIX}}"
+        FILE_NAME="$(basename "$REL_PATH")"
+        DEST="$STACKS_DIR/$FILE_NAME"
+        download_file "$FULL_PATH" "$DEST"
     done <<< "$STACK_FILES"
 fi
 
