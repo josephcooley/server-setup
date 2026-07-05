@@ -6,6 +6,6 @@ services:
     ports:
       - 9413:8001
     environment:
-      - AGENT_SECRET=CHANGE_ME!
+      - AGENT_SECRET= ${SECRET}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
