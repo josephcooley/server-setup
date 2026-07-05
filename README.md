@@ -98,7 +98,6 @@ If you change the Hermes Samba credentials or share path, update `hermes-setup.s
 - Fresh Ubuntu 20.04 LTS or later
 - Root/sudo access
 - Network access for package installation
-- Hermes already installed if you want Telegram integration configured automatically
 
 ## Author
 
