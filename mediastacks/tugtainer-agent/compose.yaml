@@ -1,0 +1,11 @@
+services:
+  tugtainer-agent:
+    image: ghcr.io/quenary/tugtainer-agent:latest
+    container_name: tugtainer-agent
+    restart: unless-stopped
+    ports:
+      - 9413:8001
+    environment:
+      - AGENT_SECRET=CHANGE_ME!
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
