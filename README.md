@@ -38,16 +38,16 @@ chmod +x install-mediastacks.sh
 sudo ./install-mediastacks.sh
 ```
 
-## `install-stacks.sh` - General Stacks Only
+## `install-hermesstacks.sh` - General Stacks Only
 
-This script downloads the `stacks/` contents from this repository directly into `/opt/dockge/stacks/` so the standard Dockge stack files are available at the root of the stacks directory.
+This script downloads the `hermesstacks/` contents from this repository directly into `/opt/dockge/stacks/` so the standard Dockge stack files are available at the root of the stacks directory.
 
 ### Usage
 
 ```bash
-curl -O https://raw.githubusercontent.com/josephcooley/server-setup/main/install-stacks.sh
-chmod +x install-stacks.sh
-sudo ./install-stacks.sh
+curl -O https://raw.githubusercontent.com/josephcooley/server-setup/main/install-hermesstacks.sh
+chmod +x install-hermesstacks.sh
+sudo ./install-hermesstacks.sh
 ```
 
 ## `dockge-setup.sh` - Dockge Only
