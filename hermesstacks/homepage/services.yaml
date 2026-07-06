@@ -62,3 +62,32 @@
           url: http://${HOMEPAGE_HOST}:8383
           username: Joseph
           password: ${HOMEPAGE_FILEBROWSER_PASSWORD}
+
+- Documents & Tools:
+    - Paperless-ngx:
+        href: http://${HOMEPAGE_HOST}:8010
+        description: Document management and OCR
+        icon: mdi-file-document-multiple
+        widget:
+          type: paperlessngx
+          url: http://${HOMEPAGE_HOST}:8010
+          key: ${HOMEPAGE_PAPERLESS_KEY}
+
+    - Tandoor:
+        href: http://${HOMEPAGE_HOST}:8082
+        description: Recipe manager
+        icon: mdi-chef-hat
+        widget:
+          type: tandoor
+          url: http://${HOMEPAGE_HOST}:8082
+          key: ${HOMEPAGE_TANDOOR_KEY}
+
+    - Sure:
+        href: http://${HOMEPAGE_HOST}:30007
+        description: Sure collaboration app
+        icon: mdi-check-decagram
+
+    - Tugtainer:
+        href: http://${HOMEPAGE_HOST}:9412
+        description: Container update dashboard
+        icon: mdi-docker
