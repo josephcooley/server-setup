@@ -21,6 +21,11 @@
         href: http://${HOMEPAGE_HOST}:2099
         description: Dozzle log viewer
         icon: dozzle
+
+    - Dashboards:
+        href: http://${HOMEPAGE_HOST}:8080
+        description: Static dashboards site
+        icon: mdi-view-dashboard
         
 - Home Automation:
     - Home Assistant:
