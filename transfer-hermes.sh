@@ -37,7 +37,7 @@ done
 # CONFIGURATION - edit these before running
 # ---------------------------------------------------------------------------
 
-# Local path to the Hermes compose stack directory (contains docker-compose.yml
+# Local path to the Hermes compose stack directory (contains compose.yaml
 # plus bind-mounted folders like ./data, ./config, etc.)
 LOCAL_STACK_DIR="${LOCAL_STACK_DIR:-/opt/dockge/stacks/hermes}"
 
@@ -50,7 +50,7 @@ REMOTE_STACK_DIR="${REMOTE_STACK_DIR:-/opt/dockge/stacks/hermes}"
 SSH_KEY="${SSH_KEY:-}"
 
 # Compose file name (change if yours isn't the default)
-COMPOSE_FILE="${COMPOSE_FILE:-compose.yml}"
+COMPOSE_FILE="${COMPOSE_FILE:-compose.yaml}"
 
 # ---------------------------------------------------------------------------
 # Prompt for remote host at startup.

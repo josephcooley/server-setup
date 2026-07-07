@@ -154,7 +154,7 @@ You can edit the configuration block in the script or export environment variabl
 - `REMOTE_HOST` (default: `192.168.1.1X`)
 - `REMOTE_STACK_DIR` (default: `/opt/dockge/stacks/hermes`)
 - `SSH_KEY` (default: empty)
-- `COMPOSE_FILE` (default: `compose.yml`)
+- `COMPOSE_FILE` (default: `compose.yaml`)
 
 ### Migration Flow
 
