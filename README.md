@@ -130,11 +130,11 @@ chmod +x transfer-hermes.sh
 
 Dry run (preview only, no stop/copy/start actions):
 ```bash
-./transfer-hermes.sh --dry-run
+sudo ./transfer-hermes.sh --dry-run
 ```
 Real run stop/copy/start actions:
 ```bash
-./transfer-hermes.sh --dry-run
+sudo ./transfer-hermes.sh --dry-run
 ```
 sudo ./transfer-hermes.sh
 ### What It Prompts For
