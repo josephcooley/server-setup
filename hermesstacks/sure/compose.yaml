@@ -26,7 +26,7 @@ services:
   web:
     image: ghcr.io/we-promise/sure:stable
     volumes:
-      - /mnt/Storage/AppData/stacks/sure/sure:/rails/storage
+      - ${STACKROOT}/sure/sure:/rails/storage
     ports:
       - ${PORT:-30007}:3000
     restart: unless-stopped
@@ -46,7 +46,7 @@ services:
     image: ghcr.io/we-promise/sure:stable
     command: bundle exec sidekiq
     volumes:
-      - /mnt/Storage/AppData/stacks/sure/sure:/rails/storage
+      - ${STACKROOT}/sure/sure:/rails/storage
     restart: unless-stopped
     depends_on:
       db:
@@ -64,7 +64,7 @@ services:
     image: postgres:16
     restart: unless-stopped
     volumes:
-      - /mnt/Storage/AppData/stacks/sure/postgres:/var/lib/postgresql/data
+      - ${STACKROOT}/sure/postgres:/var/lib/postgresql/data
     environment:
       <<: *a1
     healthcheck:
@@ -82,7 +82,7 @@ services:
     image: prodrigestivill/postgres-backup-local
     restart: unless-stopped
     volumes:
-      - /mnt/Storage/AppData/stacks/sure/backups:/backups
+      - ${STACKROOT}/sure/backups:/backups
     environment:
       - POSTGRES_HOST=db
       - POSTGRES_DB=${POSTGRES_DB:-sure_production}
@@ -100,7 +100,7 @@ services:
     image: redis:latest
     restart: unless-stopped
     volumes:
-      - /mnt/Storage/AppData/stacks/sure/redis:/data
+      - ${STACKROOT}/sure/redis:/data
     healthcheck:
       test:
         - CMD

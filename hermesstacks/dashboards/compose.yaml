@@ -12,7 +12,7 @@ services:
     ports:
       - 8080:80
     volumes:
-      - /opt/dockge/stacks/hermes/workspace/dashboards:/usr/local/apache2/htdocs:ro
+      - ${STACKROOT}/hermes/agent/workspace/dashboards:/usr/local/apache2/htdocs:ro
     restart: unless-stopped
 
 networks: {}

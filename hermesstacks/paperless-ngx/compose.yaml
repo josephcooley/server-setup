@@ -14,7 +14,7 @@ services:
       POSTGRES_USER: paperless
       POSTGRES_PASSWORD: paperless
     volumes:
-      - /mnt/Storage/AppData/stacks/paperlessngx/postgres:/var/lib/postgresql/data
+      - ${STACKROOT}/paperlessngx/postgres:/var/lib/postgresql/data
   paperless:
     image: ghcr.io/paperless-ngx/paperless-ngx:latest
     container_name: paperless

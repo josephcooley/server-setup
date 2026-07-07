@@ -9,5 +9,5 @@ services:
     ports:
       - 3000:3000
     volumes:
-      - /opt/dockge/stacks/homepage:/app/config
+      - ${STACKROOT}/homepage:/app/config
     restart: unless-stopped

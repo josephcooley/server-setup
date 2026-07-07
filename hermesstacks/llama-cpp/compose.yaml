@@ -58,8 +58,5 @@ services:
       options:
         max-size: 10m
         max-file: "3"
-volumes:
-  # Optional: named volume for model persistence
   models:
     driver: local
-networks: {}

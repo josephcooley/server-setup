@@ -20,9 +20,9 @@ services:
       - 127.0.0.1:8642:8642
       - 9119:9119
     volumes:
-      - ${HERMES_BASE}/agent:/home/hermes/.hermes
+      - ${STACKROOT}/hermes/agent:/home/hermes/.hermes
       - hermes-agent-src:/opt/hermes
-      - /opt/dockge:/opt/dockge
+      - ${STACKROOT}:${STACKROOT}
       - hermes-data:/opt/data
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
@@ -42,9 +42,9 @@ services:
     ports:
       - 8787:8787
     volumes:
-      - ${HERMES_BASE}/webui:/home/hermeswebui/.hermes
+      - ${STACKROOT}/hermes/webui:/home/hermeswebui/.hermes
       - hermes-agent-src:/home/hermeswebui/.hermes/hermes-agent:ro
-      - ${HERMES_BASE}/agent/workspace:/workspace
+      - ${STACKROOT}/hermes/agent/workspace:/workspace
     environment:
       - HERMES_WEBUI_PASSWORD=${HERMES_PASS}
       - HERMES_WEBUI_HOST=0.0.0.0
