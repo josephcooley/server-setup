@@ -54,9 +54,25 @@ sudo ./install-hermesstacks.sh
 
 This script installs Docker, creates the Dockge directories, writes the Dockge compose file, starts Dockge, and syncs the stack files from this repository. It does not configure Samba, Hermes, or NFS mounts.
 
+### Usage
+
+```bash
+curl -O https://raw.githubusercontent.com/josephcooley/server-setup/main/dockge-setup.sh
+chmod +x dockge-setup.sh
+sudo ./dockge-setup.sh
+```
+
 ## `mounts.sh` - NFS Mounts Only
 
 This script only installs the NFS client, creates the local mount points, updates `/etc/fstab`, and mounts the NFS shares. It does not install Docker, Dockge, Samba, or Hermes.
+
+### Usage
+
+```bash
+curl -O https://raw.githubusercontent.com/josephcooley/server-setup/main/mounts.sh
+chmod +x mounts.sh
+sudo ./mounts.sh
+```
 
 ## What Gets Installed
 
@@ -98,6 +114,61 @@ If you change the Hermes Samba credentials or share path, update `hermes-setup.s
 - Fresh Ubuntu 20.04 LTS or later
 - Root/sudo access
 - Network access for package installation
+
+## `transfer-hermes.sh` - Hermes Stack Migration
+
+This script migrates a Hermes Docker Compose stack (compose file plus bind-mounted data) from the current machine to a remote machine over SSH.
+
+### Usage
+
+Run from this repository after making the script executable:
+
+```bash
+chmod +x transfer-hermes.sh
+./transfer-hermes.sh
+```
+
+Dry run (preview only, no stop/copy/start actions):
+
+```bash
+./transfer-hermes.sh --dry-run
+```
+
+### What It Prompts For
+
+At startup, it prompts for:
+
+- Remote host IP/hostname (with a default value)
+
+For SSH authentication, the script now uses normal interactive SSH/rsync prompts. If you are using password auth, SSH may ask for your password multiple times during a run unless SSH multiplexing is enabled.
+
+### Default Configuration Variables
+
+You can edit the configuration block in the script or export environment variables before running:
+
+- `LOCAL_STACK_DIR` (default: `/opt/dockge/stacks/hermes`)
+- `REMOTE_USER` (default: `joseph`)
+- `REMOTE_HOST` (default: `192.168.1.1X`)
+- `REMOTE_STACK_DIR` (default: `/opt/dockge/stacks/hermes`)
+- `SSH_KEY` (default: empty)
+- `COMPOSE_FILE` (default: `compose.yml`)
+
+### Migration Flow
+
+The script performs these steps:
+
+1. Validates local stack path and compose file.
+2. Validates SSH connectivity and remote Docker availability.
+3. Detects known DB containers (Postgres/MySQL/MariaDB) and optionally creates a logical DB dump.
+4. Stops the local stack (`docker compose down`) unless running with `--dry-run`.
+5. Transfers stack files with `rsync` (excluding `.git`).
+6. Starts the stack on the remote host (`docker compose up -d`).
+7. Shows remote container status (`docker compose ps`).
+
+### Notes
+
+- Built for bind mounts, not named Docker volumes.
+- Leaves the source stack stopped (not deleted) after migration as a safety net.
 
 ## Author
 
