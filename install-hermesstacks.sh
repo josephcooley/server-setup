@@ -1,16 +1,16 @@
 #!/bin/bash
 ################################################################################
-# Standalone downloader for the stacks folder
+# Standalone downloader for the hermesstacks folder
 # Downloads all files from the GitHub repo into /opt/dockge/stacks
 #
-# Usage: sudo bash stacks.sh
+# Usage: sudo bash install-hermesstacks.sh
 ################################################################################
 
 set -euo pipefail
 
 REPO="josephcooley/server-setup"
 BRANCH="main"
-SOURCE_DIR="stacks"
+SOURCE_DIR="hermesstacks"
 DEST_DIR="/opt/dockge/stacks"
 RAW_BASE="https://raw.githubusercontent.com/${REPO}/${BRANCH}/${SOURCE_DIR}"
 TREE_API="https://api.github.com/repos/${REPO}/git/trees/${BRANCH}?recursive=1"
@@ -60,7 +60,7 @@ if ! command -v python3 &>/dev/null; then
     exit 1
 fi
 
-print_section "DOWNLOAD STACKS"
+print_section "DOWNLOAD HERMES STACKS"
 print_info "Source: ${SOURCE_DIR}"
 print_info "Destination: ${DEST_DIR}"
 
@@ -73,9 +73,16 @@ if [[ -z "$API_RESPONSE" ]]; then
     exit 1
 fi
 
-STACK_FILES=$(echo "$API_RESPONSE" | awk '
-    /"path"[[:space:]]*:[[:space:]]*"stacks\// { path=$0; sub(/^.*"path"[[:space:]]*:[[:space:]]*"/, "", path); sub(/".*$/, "", path) }
-    /"type"[[:space:]]*:[[:space:]]*"blob"/ && path ~ /^stacks\// { print path; path="" }
+STACK_FILES=$(echo "$API_RESPONSE" | awk -v source_dir="$SOURCE_DIR" '
+    $0 ~ "\"path\"[[:space:]]*:[[:space:]]*\"" source_dir "/" {
+        path=$0
+        sub(/^.*"path"[[:space:]]*:[[:space:]]*"/, "", path)
+        sub(/".*$/, "", path)
+    }
+    /"type"[[:space:]]*:[[:space:]]*"blob"/ && path ~ ("^" source_dir "/") {
+        print path
+        path=""
+    }
 ')
 
 if [[ -z "$STACK_FILES" ]]; then
@@ -115,4 +122,4 @@ while IFS= read -r FULL_PATH; do
 done <<< "$STACK_FILES"
 
 print_section "COMPLETE"
-print_success "Stacks downloaded to ${DEST_DIR}"
+print_success "Hermes stacks downloaded to ${DEST_DIR}"

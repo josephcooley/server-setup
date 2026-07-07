@@ -3,7 +3,7 @@
 # Standalone downloader for the mediastacks folder
 # Downloads all files from the GitHub repo into /opt/dockge/stacks/
 #
-# Usage: sudo bash mediastacks.sh
+# Usage: sudo bash install-mediastacks.sh
 ################################################################################
 
 set -euo pipefail
@@ -73,9 +73,16 @@ if [[ -z "$API_RESPONSE" ]]; then
     exit 1
 fi
 
-STACK_FILES=$(echo "$API_RESPONSE" | awk '
-    /"path"[[:space:]]*:[[:space:]]*"mediastacks\// { path=$0; sub(/^.*"path"[[:space:]]*:[[:space:]]*"/, "", path); sub(/".*$/, "", path) }
-    /"type"[[:space:]]*:[[:space:]]*"blob"/ && path ~ /^mediastacks\// { print path; path="" }
+STACK_FILES=$(echo "$API_RESPONSE" | awk -v source_dir="$SOURCE_DIR" '
+    $0 ~ "\"path\"[[:space:]]*:[[:space:]]*\"" source_dir "/" {
+        path=$0
+        sub(/^.*"path"[[:space:]]*:[[:space:]]*"/, "", path)
+        sub(/".*$/, "", path)
+    }
+    /"type"[[:space:]]*:[[:space:]]*"blob"/ && path ~ ("^" source_dir "/") {
+        print path
+        path=""
+    }
 ')
 
 if [[ -z "$STACK_FILES" ]]; then
