@@ -2,7 +2,7 @@
 #then hermes setup OR hermes model etc.
 
 #Must generate password hash
-#docker exec -it hermes-agent bash
+#sudo docker exec -it hermes-agent bash
 #python -c "from plugins.dashboard_auth.basic import hash_password; print(hash_password('your-password'))"
 #Then add to hermes config.yaml and restart hermes
 # dashboard:
