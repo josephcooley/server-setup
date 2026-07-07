@@ -318,8 +318,7 @@ else
 
     while IFS= read -r FULL_PATH; do
         REL_PATH="${FULL_PATH#${SOURCE_PREFIX}}"
-        FILE_NAME="$(basename "$REL_PATH")"
-        DEST="$STACKS_DIR/$FILE_NAME"
+        DEST="$STACKS_DIR/$REL_PATH"
         download_file "$FULL_PATH" "$DEST"
     done <<< "$STACK_FILES"
 fi
