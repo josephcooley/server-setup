@@ -134,7 +134,7 @@ sudo ./transfer-hermes.sh --dry-run
 ```
 Real run stop/copy/start actions:
 ```bash
-sudo ./transfer-hermes.sh --dry-run
+sudo ./transfer-hermes.sh
 ```
 sudo ./transfer-hermes.sh
 ### What It Prompts For
