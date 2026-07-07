@@ -121,19 +121,22 @@ This script migrates a Hermes Docker Compose stack (compose file plus bind-mount
 
 ### Usage
 
-Run from this repository after making the script executable:
+Download and run:
 
 ```bash
+curl -O https://raw.githubusercontent.com/josephcooley/server-setup/main/transfer-hermes.sh
 chmod +x transfer-hermes.sh
-./transfer-hermes.sh
 ```
 
 Dry run (preview only, no stop/copy/start actions):
-
 ```bash
 ./transfer-hermes.sh --dry-run
 ```
-
+Real run stop/copy/start actions:
+```bash
+./transfer-hermes.sh --dry-run
+```
+sudo ./transfer-hermes.sh
 ### What It Prompts For
 
 At startup, it prompts for:
