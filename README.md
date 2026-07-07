@@ -4,7 +4,7 @@ Scripts for setting up an Ubuntu server with Docker container management, a Samb
 
 ## `hermes-setup.sh` - Hermes Server Setup
 
-This script installs Docker and Dockge, configures the Samba share used by Hermes at `/opt/dockge/stacks/hermes/workspace`, creates the Samba user, and writes the Samba share configuration for Hermes-related access.
+This script installs Docker, downloads your selected stack set (`hermesstacks/` or `mediastacks/`) into `/opt/dockge/stacks/`, starts Dockge, configures the Samba share used by Hermes at `/opt/dockge/stacks/hermes/workspace`, creates the Samba user, and writes the Samba share configuration for Hermes-related access.
 
 ### Usage
 

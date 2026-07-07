@@ -163,8 +163,8 @@ echo ""
 echo "This script will set up:"
 echo "  1. System updates"
 echo "  2. Docker & Docker Compose"
-echo "  3. Dockge (Docker Management UI)"
-echo "  4. ${STACK_SOURCE_LABEL} (from GitHub)"
+echo "  3. ${STACK_SOURCE_LABEL} (from GitHub)"
+echo "  4. Dockge (Docker Management UI)"
 echo "  5. Samba (SMB Network Share)"
 echo ""
 
@@ -221,53 +221,10 @@ else
 fi
 
 # ====================================================================
-# STEP 3: DOCKGE SETUP
+# STEP 3: DOWNLOAD SELECTED STACKS FROM GITHUB
 # ====================================================================
 
-print_section "STEP 3: DOCKGE SETUP"
-
-print_subsection "Creating Dockge directories"
-mkdir -p "$DOCKGE_DIR"
-chown -R joseph:joseph "$DOCKGE_DIR"
-mkdir -p "$STACKS_DIR"
-print_success "Directories created: $DOCKGE_DIR, $STACKS_DIR"
-
-print_subsection "Creating docker-compose.yml for Dockge"
-cat > "$DOCKGE_DIR/docker-compose.yml" << EOF
-services:
-  dockge:
-    image: louislam/dockge:latest
-    container_name: dockge
-    ports:
-      - "${DOCKGE_PORT}:5001"
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - ${STACKS_DIR}:/app/data/stacks
-    restart: unless-stopped
-    environment:
-      - DOCKGE_STACKS_DIR=/app/data/stacks
-      - DOCKGE_ENABLE_CONSOLE=true
-EOF
-
-print_success "docker-compose.yml created"
-
-print_subsection "Starting Dockge container"
-cd "$DOCKGE_DIR"
-chown -R "$TARGET_USER:$TARGET_GROUP" "$DOCKGE_DIR"
-docker compose up -d
-sleep 3
-
-if docker ps | grep -q dockge; then
-    print_success "Dockge container is running"
-else
-    print_warning "Dockge container status could not be verified"
-fi
-
-# ====================================================================
-# STEP 4: DOWNLOAD SELECTED STACKS FROM GITHUB
-# ====================================================================
-
-print_section "STEP 4: DOWNLOAD ${STACK_SOURCE_LABEL} FROM GITHUB"
+print_section "STEP 3: DOWNLOAD ${STACK_SOURCE_LABEL} FROM GITHUB"
 
 REPO="josephcooley/server-setup"
 BRANCH="main"
@@ -321,6 +278,49 @@ else
         DEST="$STACKS_DIR/$REL_PATH"
         download_file "$FULL_PATH" "$DEST"
     done <<< "$STACK_FILES"
+fi
+
+# ====================================================================
+# STEP 4: DOCKGE SETUP
+# ====================================================================
+
+print_section "STEP 4: DOCKGE SETUP"
+
+print_subsection "Creating Dockge directories"
+mkdir -p "$DOCKGE_DIR"
+chown -R joseph:joseph "$DOCKGE_DIR"
+mkdir -p "$STACKS_DIR"
+print_success "Directories created: $DOCKGE_DIR, $STACKS_DIR"
+
+print_subsection "Creating docker-compose.yml for Dockge"
+cat > "$DOCKGE_DIR/docker-compose.yml" << EOF
+services:
+    dockge:
+        image: louislam/dockge:latest
+        container_name: dockge
+        ports:
+            - "${DOCKGE_PORT}:5001"
+        volumes:
+            - /var/run/docker.sock:/var/run/docker.sock
+            - ${STACKS_DIR}:/app/data/stacks
+        restart: unless-stopped
+        environment:
+            - DOCKGE_STACKS_DIR=/app/data/stacks
+            - DOCKGE_ENABLE_CONSOLE=true
+EOF
+
+print_success "docker-compose.yml created"
+
+print_subsection "Starting Dockge container"
+cd "$DOCKGE_DIR"
+chown -R "$TARGET_USER:$TARGET_GROUP" "$DOCKGE_DIR"
+docker compose up -d
+sleep 3
+
+if docker ps | grep -q dockge; then
+    print_success "Dockge container is running"
+else
+    print_warning "Dockge container status could not be verified"
 fi
 
 # ====================================================================
