@@ -10,7 +10,7 @@ services:
       - DOCKER_MODS=linuxserver/mods:universal-calibre #optional
       - OAUTHLIB_RELAX_TOKEN_SCOPE=1 #optional
     volumes:
-      - ${STACKROOT}/stacks/calibre-web:/config
+      - ./calibre-web:/config
       - ${SHAREROOT}/Books/eBooks:/books
     ports:
       - 8083:8083
@@ -23,13 +23,12 @@ services:
     ports:
       - 13378:80
     volumes:
-      - ${STACKROOT}/stacks/audiobookshelf:/config
+      - ./audiobookshelf:/config
       - ${SHAREROOT}/Books/Audiobooks:/audiobooks
       - ${SHAREROOT}/Books/Audiobooks:/metadata
     restart: unless-stopped
 
 #komga is a self-hosted media server for managing and reading comics and manga. It provides a web interface for accessing your comic library from any device with a web browser. The configuration provided sets up the Komga service with the necessary environment variables, volume mappings, and port settings.    
-services:
   komga:
     container_name: komga
     image: gotson/komga
@@ -39,15 +38,13 @@ services:
       - PGID=1000
       - TZ=America/Los_Angeles
     volumes:
-      - ${STACKROOT}/stacks/komga:/config
+      - ./komga:/config
       - ${SHAREROOT}/Books/Comics:/data
     ports:
       - 25600:25600
-    restart: unless-stopped
-networks: {}
+    restart: unless-stoppedS
 
 #shelfmark is a self-hosted application for managing and organizing your book collection. It provides a web interface for accessing your book library from any device with a web browser. The configuration provided sets up the Shelfmark service with the necessary environment variables, volume mappings, and port settings.
-services:
   shelfmark:
     image: ghcr.io/calibrain/shelfmark:latest
     container_name: shelfmark
@@ -59,7 +56,7 @@ services:
     restart: unless-stopped
     volumes:
       - ${SHAREROOT}/Books/ebooks:/books # Default destination for book downloads
-      - ${STACKROOT}/stacks/shelfmark:/config # App configuration
+      - ./shelfmark:/config # App configuration
       # Required for torrent / usenet - path must match your download client's volume exactly
       - ${SHAREROOT}/Downloads:${SHAREROOT}/Downloads
 networks: {}

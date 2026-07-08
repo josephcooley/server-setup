@@ -6,8 +6,6 @@ services:
     # Alternative: ghcr.io/grimmory-tools/grimmory:<release-version>
     # To build from source instead: comment out 'image' and uncomment below
     # build: .
-
-
     container_name: grimmory
     environment:
       - USER_ID=${APP_USER_ID}
@@ -24,7 +22,7 @@ services:
     ports:
       - 6060:6060
     volumes:
-      - ./grimmory/grimmory:/app/data
+      - ./grimmory:/app/data
       - /mnt/Storage/Books:/books
       - /mnt/Storage/Books/bookdrop:/bookdrop
     healthcheck:
@@ -46,7 +44,7 @@ services:
       - MYSQL_USER=${DB_USER}
       - MYSQL_PASSWORD=${DB_PASSWORD}
     volumes:
-      - ./grimmory/mariadb/config:/config
+      - ./mariadb/config:/config
     restart: unless-stopped
     healthcheck:
       test:

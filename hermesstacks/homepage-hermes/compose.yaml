@@ -9,5 +9,5 @@ services:
     ports:
       - 3000:3000
     volumes:
-      - ${STACKROOT}/homepage-hermes:/app/config
+      - ./config:/app/config
     restart: unless-stopped

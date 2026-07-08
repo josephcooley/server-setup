@@ -6,7 +6,7 @@ services:
     expose:
       - 5432
     volumes:
-      - ${STACKROOT}/tandoor/postgresql:/var/lib/postgresql/data
+      - ./postgresql:/var/lib/postgresql/data
     env_file:
       - ./.env
     #networks:
@@ -23,9 +23,9 @@ services:
     env_file:
       - ./.env
     volumes:
-      - ${STACKROOT}/tandoor/staticfiles:/opt/recipes/staticfiles
-      #- ${STACKROOT}/tandoor/nginx_config:/opt/recipes/nginx/conf.d
-      - ${STACKROOT}/tandoor/mediafiles:/opt/recipes/mediafiles
+      - ./staticfiles:/opt/recipes/staticfiles
+      #- ./nginx_config:/opt/recipes/nginx/conf.d
+      - ./mediafiles:/opt/recipes/mediafiles
     depends_on:
       - db_recipes
     #networks:

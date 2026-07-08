@@ -8,7 +8,7 @@ services:
       - WEBUI_PORT=21413
       - TZ=America/Los_Angeles
     volumes:
-      - ${STACKROOT}/stacks/qbittorrent:/config
+      - ./qbittorrent:/config
       - ${SHAREROOT}/Downloads/complete:/downloads #optional
     ports:
       - 21413:8080

@@ -3,7 +3,7 @@ services:
     container_name: homeassistant
     image: ghcr.io/home-assistant/home-assistant:stable
     volumes:
-      - ${STACKROOT}/homeassistant/homeassistant:/config
+      - ./homeassistant:/config
       - /etc/localtime:/etc/localtime:ro
       - /run/dbus:/run/dbus:ro
     restart: unless-stopped
@@ -23,7 +23,7 @@ services:
       - 1883:1883
       - 9001:9001
     volumes:
-      - ${STACKROOT}/homeassistant/mosquitto:/mosquitto/data
+      - ./mosquitto:/mosquitto/data
   frigate:
     container_name: frigate
     image: ghcr.io/blakeblackshear/frigate:stable
@@ -31,7 +31,7 @@ services:
     restart: unless-stopped
     shm_size: 1gb
     volumes:
-      - ${STACKROOT}/homeassistant/frigate:/config
+      - ./frigate:/config
       - /opt/Frigate:/media/frigate
       - /etc/localtime:/etc/localtime:ro
     ports:
