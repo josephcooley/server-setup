@@ -1,7 +1,7 @@
 services:
   homepage:
     image: ghcr.io/gethomepage/homepage:latest
-    container_name: homepage
+    container_name: homepage-media
     env_file:
       - .env
     environment:
@@ -9,7 +9,7 @@ services:
     ports:
       - 30000:3000
     volumes:
-      - ${STACKROOT}/stacks/homepage:/app/config
+      - ${STACKROOT}/stacks/homepage-media:/app/config
       #- /var/run/docker.sock:/var/run/docker.sock:ro # optional, for docker integrations
     restart: unless-stopped
 networks: {}

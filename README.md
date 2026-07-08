@@ -26,29 +26,25 @@ Edit the configuration block at the top of `hermes-setup.sh` before running if y
 - `DOCKGE_DIR`: Dockge install path, default `/opt/dockge`
 - `STACKS_DIR`: Dockge stacks path, default `/opt/stacks`
 
-## `install-mediastacks.sh` - Media Stacks Only
+## `install-stacks.sh` - Stack Downloader
 
-This script downloads the `mediastacks/` contents from this repository directly into `/opt/stacks/` so the stack files are available at the root of Dockge's stacks directory instead of inside a `mediastacks` subfolder.
-
-### Usage
-
-```bash
-curl -O https://raw.githubusercontent.com/josephcooley/server-setup/main/install-mediastacks.sh
-chmod +x install-mediastacks.sh
-sudo ./install-mediastacks.sh
-```
-
-## `install-hermesstacks.sh` - General Stacks Only
-
-This script downloads the `hermesstacks/` contents from this repository directly into `/opt/stacks/` so the standard Dockge stack files are available at the root of the stacks directory.
+This script downloads selected stack contents from `hermesstacks/`, `mediastacks/`, or both into `/opt/stacks/`.
 
 ### Usage
 
 ```bash
-curl -O https://raw.githubusercontent.com/josephcooley/server-setup/main/install-hermesstacks.sh
-chmod +x install-hermesstacks.sh
-sudo ./install-hermesstacks.sh
+curl -O https://raw.githubusercontent.com/josephcooley/server-setup/main/install-stacks.sh
+chmod +x install-stacks.sh
+sudo ./install-stacks.sh
 ```
+
+When run, it prompts you to choose:
+
+- `hermesstacks`
+- `mediastacks`
+- `both`
+
+Existing destination files are skipped by default.
 
 ## `dockge-setup.sh` - Dockge Only
 

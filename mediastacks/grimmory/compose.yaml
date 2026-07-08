@@ -24,7 +24,7 @@ services:
     ports:
       - 6060:6060
     volumes:
-      - /mnt/Storage/AppData/stacks/grimmory:/app/data
+      - ./grimmory/grimmory:/app/data
       - /mnt/Storage/Books:/books
       - /mnt/Storage/Books/bookdrop:/bookdrop
     healthcheck:
@@ -46,7 +46,7 @@ services:
       - MYSQL_USER=${DB_USER}
       - MYSQL_PASSWORD=${DB_PASSWORD}
     volumes:
-      - /mnt/Storage/AppData/stacks/grimmory/mariadb/config:/config
+      - ./grimmory/mariadb/config:/config
     restart: unless-stopped
     healthcheck:
       test:
