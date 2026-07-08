@@ -1,0 +1,131 @@
+{
+  "jobs": [
+    {
+      "id": "91d5e77191fb",
+      "name": "Goodwill Mini PC Scanner",
+      "prompt": "Run the ShopGoodwill Mini PC scanner and report results.\n\nExecute: python3 /workspace/dashboards/goodwill-minipc-scanner/scanner.py\n\nReport any new listings found.",
+      "skills": [],
+      "skill": null,
+      "model": null,
+      "provider": null,
+      "base_url": null,
+      "script": null,
+      "no_agent": false,
+      "context_from": null,
+      "schedule": {
+        "kind": "cron",
+        "expr": "0 9 * * *",
+        "display": "0 9 * * *"
+      },
+      "schedule_display": "0 9 * * *",
+      "repeat": {
+        "times": null,
+        "completed": 24
+      },
+      "enabled": false,
+      "state": "paused",
+      "paused_at": "2026-07-04T23:37:55.764362+00:00",
+      "paused_reason": null,
+      "created_at": "2026-06-21T01:01:46.496059+00:00",
+      "next_run_at": "2026-07-05T09:00:00+00:00",
+      "last_run_at": "2026-07-04T09:00:16.695352+00:00",
+      "last_status": "error",
+      "last_error": "RuntimeError: HTTP 401: User not found.",
+      "last_delivery_error": "unknown platform 'webui'",
+      "deliver": "origin",
+      "origin": {
+        "platform": "webui",
+        "chat_id": "16c3b7a12ac7",
+        "chat_name": null,
+        "thread_id": null
+      },
+      "enabled_toolsets": null,
+      "workdir": null
+    },
+    {
+      "id": "43811d5db879",
+      "name": "Workspace Index Generator",
+      "prompt": "Run `/workspace/dashboards/generate-index.sh` to regenerate the dashboards landing page. Report how many entries were found.",
+      "skills": [],
+      "skill": null,
+      "model": null,
+      "provider": null,
+      "base_url": null,
+      "script": null,
+      "no_agent": false,
+      "context_from": null,
+      "schedule": {
+        "kind": "cron",
+        "expr": "0 0 * * *",
+        "display": "0 0 * * *"
+      },
+      "schedule_display": "0 0 * * *",
+      "repeat": {
+        "times": null,
+        "completed": 10
+      },
+      "enabled": false,
+      "state": "paused",
+      "paused_at": "2026-07-04T23:37:57.007473+00:00",
+      "paused_reason": null,
+      "created_at": "2026-06-24T15:23:08.641689+00:00",
+      "next_run_at": "2026-07-05T00:00:00+00:00",
+      "last_run_at": "2026-07-04T00:00:13.283862+00:00",
+      "last_status": "error",
+      "last_error": "RuntimeError: HTTP 401: User not found.",
+      "last_delivery_error": "unknown platform 'webui'",
+      "deliver": "origin",
+      "origin": {
+        "platform": "webui",
+        "chat_id": "5f699171cd80",
+        "chat_name": null,
+        "thread_id": null
+      },
+      "enabled_toolsets": null,
+      "workdir": null
+    },
+    {
+      "id": "697f1bb6439c",
+      "name": "PDX-ANC Alaska Flight Price Tracker",
+      "prompt": "Run the flight price tracker for PDX \u2194 ANC round trip, 5-day trip, Alaska Airlines direct flights.\n\nExecute: python3 /workspace/dashboards/flight-tracker/flight_tracker.py\n\nReport the cheapest round-trip price found and whether it's below the $500 target.",
+      "skills": [],
+      "skill": null,
+      "model": null,
+      "provider": null,
+      "base_url": null,
+      "script": null,
+      "no_agent": false,
+      "context_from": null,
+      "schedule": {
+        "kind": "cron",
+        "expr": "0 0,12 * * *",
+        "display": "0 0,12 * * *"
+      },
+      "schedule_display": "0 0,12 * * *",
+      "repeat": {
+        "times": null,
+        "completed": 27
+      },
+      "enabled": false,
+      "state": "paused",
+      "paused_at": "2026-07-04T23:37:59.098462+00:00",
+      "paused_reason": null,
+      "created_at": "2026-06-25T02:04:26.410406+00:00",
+      "next_run_at": "2026-07-05T00:00:00+00:00",
+      "last_run_at": "2026-07-04T12:00:18.022236+00:00",
+      "last_status": "error",
+      "last_error": "RuntimeError: HTTP 401: User not found.",
+      "last_delivery_error": "unknown platform 'webui'",
+      "deliver": "origin",
+      "origin": {
+        "platform": "webui",
+        "chat_id": "87176963a05c",
+        "chat_name": null,
+        "thread_id": null
+      },
+      "enabled_toolsets": null,
+      "workdir": null
+    }
+  ],
+  "updated_at": "2026-07-04T23:37:59.099650+00:00"
+}
