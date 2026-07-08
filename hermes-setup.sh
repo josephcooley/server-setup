@@ -2,9 +2,11 @@
 ################################################################################
 # Combined Server Setup Script
 # Automates Ubuntu server configuration with:
+#   - Install Hermes Agent
 #   - Docker & Dockge setup (Container management)
-#   - Downloads Dockge stacks from GitHub
 #   - SMB network share (Samba)
+#   - Telegram bot integration (Hermes Agent)
+#
 # Author: Joseph M. Cooley
 # Usage: sudo bash hermes-setup.sh
 ################################################################################
@@ -16,33 +18,29 @@ set -e
 # ====================================================================
 
 # SMB/Samba Configuration
-SHARE_DIR="/opt/stacks/hermes/workspace"
-SHARE_NAME="workspace"
+SHARE_DIR="/srv/samba/share"
+SHARE_NAME="hermes-share"
 SMB_WORKGROUP="WORKGROUP"
 SMB_HOSTS_ALLOW="192.168.1.0/24 127.0.0.1"
+SAMBA_USERNAME="Joseph"
 SAMBA_PASSWORD=""  # Leave empty to be prompted at startup
+
+# Telegram settings (fill these in or the script will prompt)
+TELEGRAM_BOT_TOKEN=""
+TELEGRAM_USER_ID=""
 
 # Dockge Configuration
 DOCKGE_PORT="5001"
 DOCKGE_DIR="/opt/dockge"
 STACKS_DIR="/opt/stacks"
-
-# Prefer the invoking user for Hermes config when running via sudo.
-TARGET_USER="${SUDO_USER:-${USER:-root}}"
-TARGET_GROUP="$(id -gn "$TARGET_USER")"
-if [[ "$TARGET_USER" == "root" ]]; then
-    TARGET_HOME="/root"
-else
-    TARGET_HOME="$(getent passwd "$TARGET_USER" | cut -d: -f6)"
-    if [[ -z "$TARGET_HOME" ]]; then
-        TARGET_HOME="/home/$TARGET_USER"
-    fi
-fi
-SAMBA_USERNAME="$TARGET_USER"
+AGENT_DIR="/opt/stacks/hermes/agent"
+STACKS_GITHUB_REPO="https://github.com/josephcooley/server-setup.git"
+STACKS_GITHUB_BRANCH="main"
 
 # ====================================================================
 # COLOR CODES & OUTPUT FUNCTIONS
 # ====================================================================
+
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -97,37 +95,6 @@ PRIMARY_IP=$(hostname -I | awk '{print $1}')
 print_success "Primary IP: $PRIMARY_IP"
 
 # ====================================================================
-# SELECT STACK FAMILY
-# ====================================================================
-
-print_section "STACK FAMILY SELECTION"
-
-while true; do
-    echo "Choose which stack folder to download in step 4:"
-    echo "  1) Hermes stacks"
-    echo "  2) Media stacks"
-    read -rp "Enter choice [1-2]: " STACK_CHOICE
-
-    case "$STACK_CHOICE" in
-        1)
-            STACK_SOURCE_DIR="hermesstacks"
-            STACK_SOURCE_LABEL="Hermes stacks"
-            break
-            ;;
-        2)
-            STACK_SOURCE_DIR="mediastacks"
-            STACK_SOURCE_LABEL="Media stacks"
-            break
-            ;;
-        *)
-            print_error "Invalid choice. Enter 1 or 2."
-            ;;
-    esac
-done
-
-print_success "Selected: ${STACK_SOURCE_LABEL}"
-
-# ====================================================================
 # PROMPT FOR SAMBA PASSWORD (if not set in configuration)
 # ====================================================================
 
@@ -162,14 +129,15 @@ echo -e "${BLUE}========================================${NC}"
 echo ""
 echo "This script will set up:"
 echo "  1. System updates"
-echo "  2. Docker & Docker Compose"
-echo "  3. ${STACK_SOURCE_LABEL} (from GitHub)"
+echo "  2. Hermes Agent"
+echo "  3. Docker & Docker Compose"
 echo "  4. Dockge (Docker Management UI)"
 echo "  5. Samba (SMB Network Share)"
+echo "  6. Telegram Bot Integration"
 echo ""
 
 # ====================================================================
-# STEP 1: SYSTEM UPDATE AND TIMEZONE CONFIGURATION
+# STEP 1: SYSTEM UPDATE (consolidated)
 # ====================================================================
 
 print_section "STEP 1: SYSTEM UPDATE"
@@ -177,18 +145,64 @@ print_section "STEP 1: SYSTEM UPDATE"
 print_subsection "Updating package lists and upgrading system"
 apt update
 apt upgrade -y
-apt autoremove -y
-apt autoclean -y
-
-timedatectl set-timezone America/Los_Angeles #set timezone for los angeles
 
 print_success "System packages updated"
 
 # ====================================================================
-# STEP 2: DOCKER & DOCKER COMPOSE INSTALLATION
+# STEP 2: HERMES AGENT INSTALLATION
 # ====================================================================
 
-print_section "STEP 2: DOCKER & DOCKER COMPOSE INSTALLATION"
+print_section "STEP 2: HERMES AGENT INSTALLATION"
+
+# Check if Hermes is already installed
+if command -v hermes &>/dev/null; then
+    HERMES_VERSION=$(hermes --version 2>/dev/null || echo "unknown version")
+    print_success "Hermes Agent is already installed: $HERMES_VERSION"
+else
+    print_subsection "Installing Hermes Agent"
+    
+    # Install Hermes Agent from GitHub releases
+    print_info "Downloading and installing Hermes Agent from GitHub..."
+    
+    # Detect system architecture
+    ARCH=$(uname -m)
+    if [[ "$ARCH" == "x86_64" ]]; then
+        ARCH="amd64"
+    elif [[ "$ARCH" == "aarch64" ]]; then
+        ARCH="arm64"
+    fi
+    
+    # Create temp directory for installation
+    TEMP_DIR=$(mktemp -d)
+    trap "rm -rf $TEMP_DIR" EXIT
+    
+    # Install Hermes Agent from official Nous Research installer
+    if curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash; then
+        print_success "Hermes Agent installed successfully"
+    else
+        print_error "Failed to install Hermes Agent from official installer"
+        echo ""
+        echo "Installation URL: curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash"
+        echo ""
+        echo "Please visit: https://hermes-agent.nousresearch.com/ for more information"
+        exit 1
+    fi
+fi
+
+# Verify Hermes installation
+if command -v hermes &>/dev/null; then
+    print_success "Hermes Agent is ready"
+    print_info "Run 'hermes --help' for available commands"
+    sleep 1
+else
+    print_warning "Hermes Agent not found in PATH — you may need to install it manually"
+fi
+
+# ====================================================================
+# STEP 3: DOCKER & DOCKER COMPOSE INSTALLATION
+# ====================================================================
+
+print_section "STEP 3: DOCKER & DOCKER COMPOSE INSTALLATION"
 
 print_subsection "Installing Docker prerequisites"
 apt install ca-certificates curl gnupg -y
@@ -221,66 +235,6 @@ else
 fi
 
 # ====================================================================
-# STEP 3: DOWNLOAD SELECTED STACKS FROM GITHUB
-# ====================================================================
-
-print_section "STEP 3: DOWNLOAD ${STACK_SOURCE_LABEL} FROM GITHUB"
-
-REPO="josephcooley/server-setup"
-BRANCH="main"
-STACKS_RAW_BASE="https://raw.githubusercontent.com/${REPO}/${BRANCH}"
-GITHUB_API="https://api.github.com/repos/${REPO}/git/trees/${BRANCH}?recursive=1"
-SOURCE_PREFIX="${STACK_SOURCE_DIR}/"
-
-print_subsection "Fetching file list from GitHub API"
-API_RESPONSE=$(curl -fsSL "$GITHUB_API")
-if [[ -z "$API_RESPONSE" ]]; then
-    print_error "Failed to reach GitHub API"
-    exit 1
-fi
-
-# Extract only blob paths under the selected source folder so directories are not treated as downloads.
-STACK_FILES=$(echo "$API_RESPONSE" | awk -v prefix="$SOURCE_PREFIX" '
-    $0 ~ "\"path\"[[:space:]]*:[[:space:]]*\"" prefix {
-        path=$0
-        sub(/^.*"path"[[:space:]]*:[[:space:]]*"/, "", path)
-        sub(/".*$/, "", path)
-    }
-    /"type"[[:space:]]*:[[:space:]]*"blob"/ && path ~ ("^" prefix) {
-        print path
-        path=""
-    }
-')
-
-if [[ -z "$STACK_FILES" ]]; then
-    print_warning "No files found under ${STACK_SOURCE_DIR}/ in the repository"
-else
-    print_subsection "Downloading ${STACK_SOURCE_LABEL} into $STACKS_DIR"
-    download_file() {
-        local rel_path="$1"
-        local dest_path="$2"
-
-        if [[ -e "$dest_path" ]]; then
-            print_info "Skipping existing file: ${rel_path}"
-            return 0
-        fi
-
-        mkdir -p "$(dirname "$dest_path")"
-        if curl -fsSL "${STACKS_RAW_BASE}/${rel_path}" -o "$dest_path"; then
-            print_success "Downloaded: ${rel_path}"
-        else
-            print_warning "Failed to download: ${rel_path}"
-        fi
-    }
-
-    while IFS= read -r FULL_PATH; do
-        REL_PATH="${FULL_PATH#${SOURCE_PREFIX}}"
-        DEST="$STACKS_DIR/$REL_PATH"
-        download_file "$FULL_PATH" "$DEST"
-    done <<< "$STACK_FILES"
-fi
-
-# ====================================================================
 # STEP 4: DOCKGE SETUP
 # ====================================================================
 
@@ -288,32 +242,29 @@ print_section "STEP 4: DOCKGE SETUP"
 
 print_subsection "Creating Dockge directories"
 mkdir -p "$DOCKGE_DIR"
-chown -R joseph:joseph "$DOCKGE_DIR"
 mkdir -p "$STACKS_DIR"
 print_success "Directories created: $DOCKGE_DIR, $STACKS_DIR"
 
 print_subsection "Creating docker-compose.yml for Dockge"
-cat > "$DOCKGE_DIR/docker-compose.yml" << EOF
+cat > "$DOCKGE_DIR/docker-compose.yml" << 'EOF'
 services:
-    dockge:
-        image: louislam/dockge:latest
-        container_name: dockge
-        ports:
-            - "${DOCKGE_PORT}:5001"
-        volumes:
-            - /var/run/docker.sock:/var/run/docker.sock
-            - ${STACKS_DIR}:/app/data/stacks
-        restart: unless-stopped
-        environment:
-            - DOCKGE_STACKS_DIR=/app/data/stacks
-            - DOCKGE_ENABLE_CONSOLE=true
+  dockge:
+    image: louislam/dockge:latest
+    container_name: dockge
+    ports:
+      - "5001:5001"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /opt/dockge/stacks:/app/data/stacks
+    restart: unless-stopped
+    environment:
+      - DOCKGE_STACKS_DIR=/app/data/stacks
 EOF
 
 print_success "docker-compose.yml created"
 
 print_subsection "Starting Dockge container"
 cd "$DOCKGE_DIR"
-chown -R "$TARGET_USER:$TARGET_GROUP" "$DOCKGE_DIR"
 docker compose up -d
 sleep 3
 
@@ -321,6 +272,47 @@ if docker ps | grep -q dockge; then
     print_success "Dockge container is running"
 else
     print_warning "Dockge container status could not be verified"
+fi
+
+# ====================================================================
+# STEP 4.5: SYNC GITHUB CONTENT
+# ====================================================================
+
+print_section "STEP 4.5: SYNC GITHUB CONTENT"
+
+print_subsection "Installing Git for repository sync"
+apt install git -y
+print_success "Git installed"
+
+print_subsection "Downloading stacks from GitHub"
+TEMP_STACKS_DIR=$(mktemp -d)
+
+if git clone --depth 1 --branch "$STACKS_GITHUB_BRANCH" "$STACKS_GITHUB_REPO" "$TEMP_STACKS_DIR"; then
+    if [[ -d "$TEMP_STACKS_DIR/stacks" ]]; then
+        print_subsection "Overwriting $STACKS_DIR with GitHub stacks"
+        rm -rf "$STACKS_DIR"
+        mkdir -p "$STACKS_DIR"
+        cp -a "$TEMP_STACKS_DIR/stacks/." "$STACKS_DIR/"
+        print_success "Stacks synced to $STACKS_DIR"
+    else
+        print_warning "No stacks/ directory found in repository; skipping stack sync"
+    fi
+
+    if [[ -d "$TEMP_STACKS_DIR/hermes" ]]; then
+        print_subsection "Syncing repository hermes/ to $AGENT_DIR"
+        rm -rf "$AGENT_DIR"
+        mkdir -p "$AGENT_DIR"
+        cp -a "$TEMP_STACKS_DIR/hermes/." "$AGENT_DIR/"
+        print_success "Hermes agent files synced to $AGENT_DIR"
+    else
+        print_warning "No hermes/ directory found in repository; skipping agent sync"
+    fi
+
+    rm -rf "$TEMP_STACKS_DIR"
+else
+    rm -rf "$TEMP_STACKS_DIR"
+    print_error "Failed to download stacks from GitHub"
+    exit 1
 fi
 
 # ====================================================================
@@ -395,15 +387,13 @@ else
     print_info "System user '${SAMBA_USERNAME}' already exists"
 fi
 
-# Create or update Samba user password without failing on reruns
-if pdbedit -L -u "${SAMBA_USERNAME}" &>/dev/null; then
-    printf '%s\n%s\n' "$SAMBA_PASSWORD" "$SAMBA_PASSWORD" | smbpasswd -s "${SAMBA_USERNAME}" 2>/dev/null
-    smbpasswd -e "${SAMBA_USERNAME}" &>/dev/null || true
-    print_success "Samba user '${SAMBA_USERNAME}' password updated"
+# Create Samba user with password (using echo to pipe password)
+echo -e "${SAMBA_PASSWORD}\n${SAMBA_PASSWORD}" | smbpasswd -a "${SAMBA_USERNAME}" 2>/dev/null
+
+if smbpasswd -e "${SAMBA_USERNAME}" &>/dev/null; then
+    print_success "Samba user '${SAMBA_USERNAME}' created/updated with password"
 else
-    printf '%s\n%s\n' "$SAMBA_PASSWORD" "$SAMBA_PASSWORD" | smbpasswd -a -s "${SAMBA_USERNAME}" 2>/dev/null
-    smbpasswd -e "${SAMBA_USERNAME}" &>/dev/null || true
-    print_success "Samba user '${SAMBA_USERNAME}' created with password"
+    print_warning "Could not create Samba user - checking if it already exists"
 fi
 
 # Ensure share directory is accessible by the Samba user
@@ -417,17 +407,9 @@ if grep -q "^[[:space:]]*disable netbios = yes" /etc/samba/smb.conf; then
     print_info "Enabled NetBIOS for Windows discovery"
 fi
 
-# Apply workgroup setting to [global] section
-if grep -q "^[[:space:]]*workgroup" /etc/samba/smb.conf; then
-    sed -i "s/^[[:space:]]*workgroup[[:space:]]*=.*/   workgroup = ${SMB_WORKGROUP}/" /etc/samba/smb.conf
-else
-    sed -i "/^\[global\]/a\   workgroup = ${SMB_WORKGROUP}" /etc/samba/smb.conf
-fi
-print_info "Workgroup set to ${SMB_WORKGROUP}"
-
-# Force SMB2/3 protocol (anchor on [global] section, not a specific line)
+# Force SMB2/3 protocol
 if ! grep -q "server min protocol = SMB2" /etc/samba/smb.conf; then
-    sed -i "/^\[global\]/a\   client max protocol = SMB3\n   client min protocol = SMB2\n   server max protocol = SMB3\n   server min protocol = SMB2" /etc/samba/smb.conf
+    sed -i '/^[[:space:]]*map to guest = bad user/a\   server min protocol = SMB2\n   server max protocol = SMB3\n   client min protocol = SMB2\n   client max protocol = SMB3' /etc/samba/smb.conf
     print_info "Enforced SMB2/3 protocol for Windows 10/11 compatibility"
 fi
 
@@ -464,6 +446,115 @@ else
 fi
 
 # ====================================================================
+# STEP 6: TELEGRAM SETUP
+# ====================================================================
+
+print_section "STEP 6: TELEGRAM BOT INTEGRATION"
+
+# Check if Hermes is installed
+if ! command -v hermes &>/dev/null; then
+    print_warning "Hermes CLI not found in PATH"
+    echo ""
+    echo "To configure Telegram after Hermes is installed:"
+    echo "  1. Set TELEGRAM_BOT_TOKEN in ~/.hermes/.env"
+    echo "  2. Set TELEGRAM_HOME_CHANNEL to your user ID in ~/.hermes/.env"
+    echo "  3. Run: hermes gateway restart"
+    echo ""
+    print_info "Skipping Telegram setup — Hermes not yet installed"
+else
+    print_subsection "Hermes CLI found — proceeding with Telegram setup"
+    
+    ENV_FILE="$HOME/.hermes/.env"
+    
+    # Create .env if it doesn't exist
+    if [[ ! -f "$ENV_FILE" ]]; then
+        print_info "Creating $ENV_FILE"
+        mkdir -p "$HOME/.hermes"
+        touch "$ENV_FILE"
+        chmod 600 "$ENV_FILE"
+    fi
+    
+    # Check if Telegram is already configured
+    if grep -q "^TELEGRAM_BOT_TOKEN=" "$ENV_FILE" 2>/dev/null && \
+       grep -q "^TELEGRAM_HOME_CHANNEL=" "$ENV_FILE" 2>/dev/null; then
+        EXISTING_TOKEN=$(grep "^TELEGRAM_BOT_TOKEN=" "$ENV_FILE" | cut -d= -f2)
+        EXISTING_CHAT=$(grep "^TELEGRAM_HOME_CHANNEL=" "$ENV_FILE" | cut -d= -f2)
+        print_info "Telegram already configured in .env"
+        print_info "  Bot token: ${EXISTING_TOKEN:0:10}..."
+        print_info "  Home chat: $EXISTING_CHAT"
+        
+        read -p "Reconfigure Telegram? (y/N): " RECONFIG
+        if [[ "$RECONFIG" != "y" && "$RECONFIG" != "Y" ]]; then
+            print_info "Keeping existing Telegram config"
+        else
+            TELEGRAM_BOT_TOKEN=""
+            TELEGRAM_USER_ID=""
+        fi
+    fi
+    
+    # If not already configured or user chose to reconfigure
+    if [[ -z "$TELEGRAM_BOT_TOKEN" ]]; then
+        echo ""
+        echo "To set up Telegram, you need:"
+        echo "  1. A bot token from @BotFather on Telegram"
+        echo "     (send /newbot, follow the steps, copy the token)"
+        echo "  2. Your Telegram numeric user ID"
+        echo "     (message @userinfobot on Telegram to get it)"
+        echo ""
+        
+        read -p "Paste your Telegram bot token: " TELEGRAM_BOT_TOKEN
+        read -p "Paste your Telegram numeric user ID: " TELEGRAM_USER_ID
+        
+        if [[ -z "$TELEGRAM_BOT_TOKEN" || -z "$TELEGRAM_USER_ID" ]]; then
+            print_error "Both bot token and user ID are required"
+            print_warning "Skipping Telegram setup"
+        else
+            print_subsection "Writing Telegram configuration"
+            
+            # Remove old entries
+            sed -i '/^TELEGRAM_BOT_TOKEN=/d' "$ENV_FILE"
+            sed -i '/^TELEGRAM_HOME_CHANNEL=/d' "$ENV_FILE"
+            sed -i '/^TELEGRAM_ALLOWED_USERS=/d' "$ENV_FILE"
+            
+            # Append new entries
+            cat >> "$ENV_FILE" << EOF
+
+# TELEGRAM INTEGRATION
+TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+TELEGRAM_HOME_CHANNEL=${TELEGRAM_USER_ID}
+TELEGRAM_ALLOWED_USERS=${TELEGRAM_USER_ID}
+EOF
+            
+            chmod 600 "$ENV_FILE"
+            print_success "Telegram config written to $ENV_FILE"
+            
+            print_subsection "Enabling Telegram in Hermes gateway"
+            hermes config set gateway.platforms.telegram.enabled true 2>/dev/null || true
+            
+            print_subsection "Restarting Hermes gateway"
+            if systemctl --user is-active --quiet hermes-gateway 2>/dev/null; then
+                systemctl --user restart hermes-gateway
+                sleep 3
+                if systemctl --user is-active --quiet hermes-gateway; then
+                    print_success "Hermes gateway restarted successfully"
+                else
+                    print_warning "Gateway restart may have failed"
+                    echo "Check with: systemctl --user status hermes-gateway"
+                fi
+            else
+                print_warning "Hermes gateway service not found"
+                echo "Start it manually with:"
+                echo "  systemctl --user start hermes-gateway"
+                echo "  or: hermes gateway start"
+            fi
+            
+            print_success "Telegram bot token: ${TELEGRAM_BOT_TOKEN:0:10}..."
+            print_success "Home chat ID: ${TELEGRAM_USER_ID}"
+        fi
+    fi
+fi
+
+# ====================================================================
 # COMPLETION SUMMARY
 # ====================================================================
 
@@ -473,7 +564,7 @@ echo -e "${GREEN}All components installed and configured!${NC}"
 echo ""
 echo -e "${YELLOW}Access Points:${NC}"
 echo "  • Dockge:       http://${PRIMARY_IP}:${DOCKGE_PORT}"
-echo "  • SMB Share:    \\\\${PRIMARY_IP}\\${SHARE_NAME}"
+echo "  • SMB Share:    \\\\\\\\${PRIMARY_IP}\\\\${SHARE_NAME}"
 echo "  • Share Path:   ${SHARE_DIR}"
 echo ""
 echo -e "${YELLOW}SMB Share Credentials:${NC}"
@@ -484,6 +575,9 @@ echo -e "${YELLOW}Installed Services:${NC}"
 echo "  ✓ Docker & Docker Compose"
 echo "  ✓ Dockge (Docker Management UI)"
 echo "  ✓ Samba (SMB Network Share - Authenticated)"
+if command -v hermes &>/dev/null && grep -q "TELEGRAM_BOT_TOKEN=" "$HOME/.hermes/.env" 2>/dev/null; then
+    echo "  ✓ Telegram Integration"
+fi
 echo ""
 echo -e "${YELLOW}Next Steps:${NC}"
 echo ""
@@ -497,5 +591,11 @@ echo ""
 echo "3. Mount SMB share on Linux/Mac:"
 echo "   sudo mount -t cifs //${PRIMARY_IP}/${SHARE_NAME} /mnt/${SHARE_NAME} -o username=${SAMBA_USERNAME},password=<your_password>"
 echo ""
+if command -v hermes &>/dev/null; then
+    echo "4. Test Telegram:"
+    echo "   Send a message to your bot on Telegram"
+    echo "   Check logs: journalctl --user -u hermes-gateway -f"
+    echo ""
+fi
 echo -e "${BLUE}========================================${NC}"
 echo ""
