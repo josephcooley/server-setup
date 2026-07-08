@@ -292,8 +292,8 @@ chown -R joseph:joseph "$DOCKGE_DIR"
 mkdir -p "$STACKS_DIR"
 print_success "Directories created: $DOCKGE_DIR, $STACKS_DIR"
 
-print_subsection "Creating docker-compose.yml for Dockge"
-cat > "$DOCKGE_DIR/docker-compose.yml" << EOF
+print_subsection "Creating compose.yaml for Dockge"
+cat > "$DOCKGE_DIR/compose.yaml" << EOF
 services:
     dockge:
         image: louislam/dockge:latest
@@ -309,7 +309,7 @@ services:
             - DOCKGE_ENABLE_CONSOLE=true
 EOF
 
-print_success "docker-compose.yml created"
+print_success "Dockge compose.yaml created"
 
 print_subsection "Starting Dockge container"
 cd "$DOCKGE_DIR"
