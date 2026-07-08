@@ -16,7 +16,7 @@ set -e
 # ====================================================================
 
 # SMB/Samba Configuration
-SHARE_DIR="/opt/dockge/stacks/hermes/workspace"
+SHARE_DIR="/opt/stacks/hermes/workspace"
 SHARE_NAME="workspace"
 SMB_WORKGROUP="WORKGROUP"
 SMB_HOSTS_ALLOW="192.168.1.0/24 127.0.0.1"
@@ -25,7 +25,7 @@ SAMBA_PASSWORD=""  # Leave empty to be prompted at startup
 # Dockge Configuration
 DOCKGE_PORT="5001"
 DOCKGE_DIR="/opt/dockge"
-STACKS_DIR="/opt/dockge/stacks"
+STACKS_DIR="/opt/stacks"
 
 # Prefer the invoking user for Hermes config when running via sudo.
 TARGET_USER="${SUDO_USER:-${USER:-root}}"

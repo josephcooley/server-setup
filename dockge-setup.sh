@@ -13,7 +13,7 @@ set -e
 
 DOCKGE_PORT="5001"
 DOCKGE_DIR="/opt/dockge"
-STACKS_DIR="/opt/dockge/stacks"
+STACKS_DIR="/opt/stacks"
 
 TARGET_USER="${SUDO_USER:-${USER:-root}}"
 TARGET_GROUP="$(id -gn "$TARGET_USER")"

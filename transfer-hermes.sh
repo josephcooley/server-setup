@@ -39,12 +39,12 @@ done
 
 # Local path to the Hermes compose stack directory (contains compose.yaml
 # plus bind-mounted folders like ./data, ./config, etc.)
-LOCAL_STACK_DIR="${LOCAL_STACK_DIR:-/opt/dockge/stacks/hermes}"
+LOCAL_STACK_DIR="${LOCAL_STACK_DIR:-/opt/stacks/hermes}"
 
 # Remote connection details
 REMOTE_USER="${REMOTE_USER:-joseph}"
 REMOTE_HOST="${REMOTE_HOST:-192.168.1.1X}"
-REMOTE_STACK_DIR="${REMOTE_STACK_DIR:-/opt/dockge/stacks/hermes}"
+REMOTE_STACK_DIR="${REMOTE_STACK_DIR:-/opt/stacks/hermes}"
 
 # Optional: path to a specific SSH key
 SSH_KEY="${SSH_KEY:-}"

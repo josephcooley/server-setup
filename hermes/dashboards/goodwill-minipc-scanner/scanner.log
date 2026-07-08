@@ -187,7 +187,7 @@ Scan complete. Found 1 new matching listings.
 2026-06-27 09:01:59,873 [INFO] Using query: 'GEEKOM' (rotation 3/4)
 2026-06-27 09:02:01,443 [WARNING]   Search returned 500: {"message":"An error has occurred."}
 2026-06-27 09:02:01,443 [INFO] No results or API error.
-2026-06-27 09:02:01,444 [INFO] HTML page written to /opt/dockge/stacks/hermes/workspace/dashboards/goodwill-minipc-scanner/output/index.html
+2026-06-27 09:02:01,444 [INFO] HTML page written to /opt/stacks/hermes/workspace/dashboards/goodwill-minipc-scanner/output/index.html
 2026-06-29 09:00:43,250 [INFO] ============================================================
 2026-06-29 09:00:43,250 [INFO] ShopGoodwill Mini PC scan — 2026-06-29T09:00:43.250734
 2026-06-29 09:00:43,250 [INFO] ============================================================

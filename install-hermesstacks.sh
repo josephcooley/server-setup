@@ -1,7 +1,7 @@
 #!/bin/bash
 ################################################################################
 # Standalone downloader for the hermesstacks folder
-# Downloads all files from the GitHub repo into /opt/dockge/stacks
+# Downloads all files from the GitHub repo into /opt/stacks
 #
 # Usage: sudo bash install-hermesstacks.sh
 ################################################################################
@@ -11,7 +11,7 @@ set -euo pipefail
 REPO="josephcooley/server-setup"
 BRANCH="main"
 SOURCE_DIR="hermesstacks"
-DEST_DIR="/opt/dockge/stacks"
+DEST_DIR="/opt/stacks"
 RAW_BASE="https://raw.githubusercontent.com/${REPO}/${BRANCH}/${SOURCE_DIR}"
 TREE_API="https://api.github.com/repos/${REPO}/git/trees/${BRANCH}?recursive=1"
 

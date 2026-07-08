@@ -4,7 +4,7 @@ Scripts for setting up an Ubuntu server with Docker container management, a Samb
 
 ## `hermes-setup.sh` - Hermes Server Setup
 
-This script will install Docker, downloads your selected stack set (`hermesstacks/` or `mediastacks/`) into `/opt/dockge/stacks/`, starts Dockge, configures the Samba share used by Hermes at `/opt/dockge/stacks/hermes/workspace`, creates the Samba user, and writes the Samba share configuration for Hermes-related access.
+This script will install Docker, downloads your selected stack set (`hermesstacks/` or `mediastacks/`) into `/opt/stacks/`, starts Dockge, configures the Samba share used by Hermes at `/opt/stacks/hermes/workspace`, creates the Samba user, and writes the Samba share configuration for Hermes-related access.
 
 ### Usage
 
@@ -18,17 +18,17 @@ sudo ./hermes-setup.sh
 
 Edit the configuration block at the top of `hermes-setup.sh` before running if you want to change any defaults:
 
-- `SHARE_DIR`: Samba share path, default `/opt/dockge/stacks/hermes/workspace`
+- `SHARE_DIR`: Samba share path, default `/opt/stacks/hermes/workspace`
 - `SHARE_NAME`: SMB share name, default `workspace`
 - `SAMBA_USERNAME`: Samba login name, default `joseph`
 - `SMB_HOSTS_ALLOW`: Allowed LAN ranges for SMB access
 - `DOCKGE_PORT`: Dockge port, default `5001`
 - `DOCKGE_DIR`: Dockge install path, default `/opt/dockge`
-- `STACKS_DIR`: Dockge stacks path, default `/opt/dockge/stacks`
+- `STACKS_DIR`: Dockge stacks path, default `/opt/stacks`
 
 ## `install-mediastacks.sh` - Media Stacks Only
 
-This script downloads the `mediastacks/` contents from this repository directly into `/opt/dockge/stacks/` so the stack files are available at the root of Dockge's stacks directory instead of inside a `mediastacks` subfolder.
+This script downloads the `mediastacks/` contents from this repository directly into `/opt/stacks/` so the stack files are available at the root of Dockge's stacks directory instead of inside a `mediastacks` subfolder.
 
 ### Usage
 
@@ -40,7 +40,7 @@ sudo ./install-mediastacks.sh
 
 ## `install-hermesstacks.sh` - General Stacks Only
 
-This script downloads the `hermesstacks/` contents from this repository directly into `/opt/dockge/stacks/` so the standard Dockge stack files are available at the root of the stacks directory.
+This script downloads the `hermesstacks/` contents from this repository directly into `/opt/stacks/` so the standard Dockge stack files are available at the root of the stacks directory.
 
 ### Usage
 
@@ -149,10 +149,10 @@ For SSH authentication, the script now uses normal interactive SSH/rsync prompts
 
 You can edit the configuration block in the script or export environment variables before running:
 
-- `LOCAL_STACK_DIR` (default: `/opt/dockge/stacks/hermes`)
+- `LOCAL_STACK_DIR` (default: `/opt/stacks/hermes`)
 - `REMOTE_USER` (default: `joseph`)
 - `REMOTE_HOST` (default: `192.168.1.1X`)
-- `REMOTE_STACK_DIR` (default: `/opt/dockge/stacks/hermes`)
+- `REMOTE_STACK_DIR` (default: `/opt/stacks/hermes`)
 - `SSH_KEY` (default: empty)
 - `COMPOSE_FILE` (default: `compose.yaml`)
 
