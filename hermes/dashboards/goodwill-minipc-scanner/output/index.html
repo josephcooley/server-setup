@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ShopGoodwill Mini PC Scanner</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #0d1117;
+    color: #c9d1d9;
+    line-height: 1.6;
+}
+
+header {
+    background: linear-gradient(135deg, #161b22 0%, #1a2332 100%);
+    border-bottom: 1px solid #30363d;
+    padding: 24px 32px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+header h1 {
+    font-size: 1.4rem;
+    color: #58a6ff;
+}
+
+header h1 span {
+    color: #8b949e;
+    font-weight: 400;
+    font-size: 0.85rem;
+    display: block;
+    margin-top: 2px;
+}
+
+.stats {
+    display: flex;
+    gap: 20px;
+    font-size: 0.85rem;
+    color: #8b949e;
+}
+
+.stats strong {
+    color: #c9d1d9;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 24px 32px;
+}
+
+.empty {
+    text-align: center;
+    padding: 80px 20px;
+    color: #8b949e;
+    font-size: 1.1rem;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 20px;
+}
+
+.card {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 12px;
+    overflow: hidden;
+    transition: border-color 0.2s, transform 0.2s;
+}
+
+.card:hover {
+    border-color: #58a6ff;
+    transform: translateY(-2px);
+}
+
+.image-wrap {
+    height: 200px;
+    background: #0d1117;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.image-wrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    padding: 12px;
+}
+
+.no-image {
+    color: #30363d;
+    font-size: 0.9rem;
+}
+
+.info {
+    padding: 16px;
+}
+
+.info h3 {
+    font-size: 0.95rem;
+    margin-bottom: 8px;
+    line-height: 1.4;
+}
+
+.info h3 a {
+    color: #58a6ff;
+    text-decoration: none;
+}
+
+.info h3 a:hover {
+    text-decoration: underline;
+}
+
+.meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.price {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #3fb950;
+}
+
+.buynow {
+    font-size: 0.8rem;
+    color: #d29922;
+    font-weight: 400;
+}
+
+.end-time {
+    font-size: 0.8rem;
+    color: #8b949e;
+}
+
+.desc {
+    font-size: 0.82rem;
+    color: #8b949e;
+    margin-bottom: 8px;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.category {
+    font-size: 0.75rem;
+    color: #6e7681;
+    margin-bottom: 12px;
+}
+
+.btn {
+    display: inline-block;
+    padding: 8px 16px;
+    background: #238636;
+    color: #fff;
+    text-decoration: none;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    transition: background 0.2s;
+}
+
+.btn:hover {
+    background: #2ea043;
+}
+
+footer {
+    text-align: center;
+    padding: 24px;
+    color: #30363d;
+    font-size: 0.75rem;
+    border-top: 1px solid #21262d;
+    margin-top: 40px;
+}
+</style>
+</head>
+<body>
+
+<header>
+    <h1>🔍 ShopGoodwill Mini PC Scanner<br><span>8th gen Intel / Ryzen 3000+ mini PCs</span></h1>
+    <div class="stats">
+        <div>Matches: <strong>0</strong></div>
+        <div>Query: <strong>GEEKOM</strong></div>
+        <div>Updated: <strong>2026-06-27 09:02</strong></div>
+    </div>
+</header>
+
+<div class="container">
+    <div class="empty">No new 8th gen+ mini PCs found this run. Check back later!</div>
+    <div class="grid">
+        
+    </div>
+</div>
+
+<footer>
+    ShopGoodwill Mini PC Scanner — Auto-updated every 4 hours via Hermes Agent
+</footer>
+
+</body>
+</html>

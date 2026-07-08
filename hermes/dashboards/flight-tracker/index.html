@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PDX → ANC → PDX Trip Price Tracker</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg: #0f1117;
+  --surface: #1a1d27;
+  --surface2: #242836;
+  --border: #2e3348;
+  --text: #e4e6f0;
+  --text2: #8b8fa8;
+  --accent: #4f9cf9;
+  --accent2: #2ecc71;
+  --danger: #e74c3c;
+  --warning: #f39c12;
+  --alaska: #01426a;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  padding: 24px;
+}
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.trip-badge {
+  background: linear-gradient(135deg, #1a2332, #0f1820);
+  border: 1px solid var(--alaska);
+  border-radius: 12px;
+  padding: 12px 20px;
+}
+.trip-badge .route {
+  font-size: 1.2rem;
+  font-weight: 700;
+  font-family: 'SF Mono', monospace;
+}
+.trip-badge .details {
+  font-size: 0.75rem;
+  color: var(--text2);
+  margin-top: 4px;
+}
+.timestamp { color: var(--text2); font-size: 0.8rem; text-align: right; }
+.timestamp div { margin-bottom: 4px; }
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+  transition: transform 0.15s;
+}
+.stat-card:hover { transform: translateY(-1px); }
+.stat-card.good { border-color: var(--accent2); }
+.stat-card.warn { border-color: var(--warning); }
+.stat-card.danger { border-color: var(--danger); }
+.stat-card .label { color: var(--text2); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+.stat-card .value { font-size: 1.8rem; font-weight: 700; font-family: 'SF Mono', monospace; }
+.stat-card.good .value { color: var(--accent2); }
+.stat-card.warn .value { color: var(--warning); }
+.stat-card.danger .value { color: var(--danger); }
+.stat-card.info .value { color: var(--accent); }
+.stat-card .sub { color: var(--text2); font-size: 0.8rem; margin-top: 6px; }
+
+.section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 24px;
+}
+.section h2 { font-size: 1.1rem; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+
+.best-trip-card {
+  background: var(--surface2);
+  border: 2px solid var(--accent2);
+  border-radius: 10px;
+  padding: 20px;
+  margin-bottom: 24px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+}
+.best-trip-card .item .label { color: var(--text2); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px; }
+.best-trip-card .item .val { font-size: 1.2rem; font-weight: 700; margin-top: 4px; font-family: 'SF Mono', monospace; }
+.best-trip-card .price-item .val { color: var(--accent2); font-size: 1.6rem; }
+
+.direct-flights {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+}
+.flight-card {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 18px;
+  transition: border-color 0.2s;
+}
+.flight-card:hover { border-color: var(--accent); }
+.flight-card .flight-number { font-size: 1.3rem; font-weight: 700; color: var(--accent); font-family: 'SF Mono', monospace; }
+.flight-card .direction-tag {
+  display: inline-block; font-size: 0.65rem; padding: 2px 8px;
+  border-radius: 4px; background: var(--alaska); color: #fff;
+  margin-left: 8px; vertical-align: middle; text-transform: uppercase; letter-spacing: 0.5px;
+}
+.flight-card .route { display: flex; align-items: center; gap: 10px; margin: 14px 0; font-weight: 600; }
+.flight-card .route .airport { font-size: 1.1rem; font-family: 'SF Mono', monospace; }
+.flight-card .route .arrow { color: var(--accent); font-size: 1.2rem; }
+.flight-card .times { color: var(--text2); font-size: 0.85rem; }
+
+.chart-container { position: relative; height: 320px; width: 100%; }
+.chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+@media (max-width: 768px) { .chart-grid { grid-template-columns: 1fr; } }
+
+.browse-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+.browse-table th {
+  text-align: left; padding: 10px 10px; color: var(--text2);
+  font-weight: 600; font-size: 0.7rem; text-transform: uppercase;
+  letter-spacing: 0.5px; border-bottom: 1px solid var(--border);
+}
+.browse-table td { padding: 9px 10px; border-bottom: 1px solid var(--border); }
+.browse-table tr:hover td { background: var(--surface2); }
+.browse-table .price-cell { font-weight: 700; font-family: 'SF Mono', monospace; }
+.browse-table .price-cell.good { color: var(--accent2); }
+.browse-table .price-cell.warn { color: var(--warning); }
+.browse-table .price-cell.danger { color: var(--danger); }
+
+.alert-banner {
+  background: linear-gradient(135deg, #1a3a1a, #0f2a0f);
+  border: 1px solid #2ecc71; border-radius: 10px;
+  padding: 16px 20px; margin-bottom: 24px;
+  display: flex; align-items: center; gap: 12px;
+}
+.alert-banner.warn-banner { background: linear-gradient(135deg, #3a2a0a, #2a1a00); border-color: var(--warning); }
+.alert-banner .emoji { font-size: 1.5rem; }
+.alert-banner .msg { font-size: 0.9rem; }
+.alert-banner .msg strong { color: var(--accent2); }
+
+.chart-toggle { display: flex; gap: 8px; margin-bottom: 16px; }
+.chart-toggle button {
+  background: var(--surface2); border: 1px solid var(--border);
+  color: var(--text2); padding: 6px 14px; border-radius: 6px;
+  cursor: pointer; font-size: 0.8rem; transition: all 0.2s;
+}
+.chart-toggle button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+footer { text-align: center; color: var(--text2); font-size: 0.75rem; padding: 24px 0 12px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="trip-badge">
+      <div class="route">✈️ PDX → ANC → PDX</div>
+      <div class="details">Round Trip · 5-Day Stay (±1 day) · Alaska Airlines · Direct Only</div>
+    </div>
+  </div>
+  <div class="timestamp" id="lastUpdated"></div>
+</div>
+
+<div id="alertBanner"></div>
+
+<div id="bestTripCard"></div>
+
+<div class="stats-grid" id="statsGrid"></div>
+
+<div class="section">
+  <h2>📊 Price History Over Time</h2>
+  <div class="chart-toggle">
+    <button class="active" onclick="showChart('history', this)">All Recordings</button>
+    <button onclick="showChart('best', this)">Best Trip Selected</button>
+  </div>
+  <div class="chart-container"><canvas id="historyChart"></canvas></div>
+</div>
+
+<div class="section">
+  <h2>🗓️ Prices by Trip Window</h2>
+  <div class="chart-container"><canvas id="windowChart"></canvas></div>
+</div>
+
+<div class="section">
+  <h2>✈️ Direct FlightsAvailable</h2>
+  <div class="direct-flights" id="flightsGrid"></div>
+</div>
+
+<div class="section">
+  <h2>📋 All Observations Log</h2>
+  <div style="overflow-x:auto;">
+    <table class="browse-table" id="obsTable">
+      <thead><tr><th>Checked</th><th>Departure</th><th>Return</th><th>Days</th><th>Price</th><th>Status</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
+
+<footer>PDX ↔ ANC Trip Tracker · Alaska Airlines Direct · Target $500 · Updates every 6 hours</footer>
+
+<script>
+const TARGET = 500;
+const DATA_FILE = 'data.json';
+let data = null;
+let charts = {};
+
+function pc(p) { return p <= TARGET ? 'good' : p <= TARGET*1.2 ? 'warn' : 'danger'; }
+function fp(p) { return '$' + (p||0).toLocaleString(); }
+function fd(iso) { return iso ? new Date(iso).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '—'; }
+function fdt(iso) { return iso ? new Date(iso).toLocaleDateString('en-US',{month:'short',day:'numeric'}) + ' ' + new Date(iso).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}) : '—'; }
+
+function showChart(which, btn) {
+  document.querySelectorAll('.chart-toggle button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderWindowChart(which);
+}
+
+async function load() {
+  try {
+    const r = await fetch(DATA_FILE + '?t=' + Date.now());
+    if (!r.ok) throw new Error();
+    data = await r.json();
+  } catch(e) {
+    document.body.innerHTML = '<div style="padding:60px;text-align:center;color:var(--text2);">No data yet.<br><br>Run <code>.venv/bin/python flight_tracker.py</code> to populate.</div>';
+    return;
+  }
+  renderAll();
+}
+
+function renderAll() {
+  renderAlert();
+  renderBestTrip();
+  renderStats();
+  renderFlights();
+  renderCharts();
+  renderTable();
+  document.getElementById('lastUpdated').innerHTML = '<div>Last updated:</div><div>' + fdt(data.timestamp) + '</div>';
+}
+
+function renderAlert() {
+  const b = document.getElementById('alertBanner');
+  const p = data.best_trip?.price || 0;
+  if (p <= TARGET) {
+    b.className = 'alert-banner';
+    b.innerHTML = `<div class="emoji">🎉</div><div class="msg"><strong>Target met!</strong> Best trip is ${fp(p)} — ${fp(p-TARGET)} under your ${fp(TARGET)} target.</div>`;
+  } else if (data.alert && data.price_change?.includes('DOWN')) {
+    b.className = 'alert-banner warn-banner';
+    b.innerHTML = `<div class="emoji">📉</div><div class="msg"><strong>Price dropped!</strong> ${data.price_change}</div>`;
+  } else {
+    b.style.display = 'none';
+  }
+}
+
+function renderBestTrip() {
+  const bt = data.best_trip || {};
+  const card = document.getElementById('bestTripCard');
+  const dep = bt.departure_date ? new Date(bt.departure_date) : null;
+  const ret = bt.return_date ? new Date(bt.return_date) : null;
+  const savings = bt.price <= TARGET ? TARGET - bt.price : 0;
+
+  card.innerHTML = `
+    <div class="item">
+      <div class="label">Best Trip Found</div>
+      <div class="val" style="color:var(--accent2);font-size:1.4rem;">${fp(bt.price)}</div>
+    </div>
+    <div class="item">
+      <div class="label">Depart PDX → ANC</div>
+      <div class="val">${dep ? dep.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}) : '—'}</div>
+    </div>
+    <div class="item">
+      <div class="label">Return ANC → PDX</div>
+      <div class="val">${ret ? ret.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}) : '—'}</div>
+    </div>
+    <div class="item">
+      <div class="label">Trip Length</div>
+      <div class="val">${bt.trip_days || 5} days</div>
+    </div>
+    <div class="item price-item">
+      <div class="label">Savings vs Target</div>
+      <div class="val">${savings > 0 ? '-' + fp(savings) : '—'}</div>
+    </div>
+  `;
+}
+
+function renderStats() {
+  const g = document.getElementById('statsGrid');
+  const cur = data.best_trip?.price || 0;
+  const low = data.lowest_ever || cur;
+  const prev = data.previous_price;
+  const windows = data.total_windows_searched || 0;
+
+  let changeHtml = '';
+  if (prev && prev !== cur) {
+    const diff = cur - prev;
+    const arrow = diff < 0 ? '↓' : '↑';
+    const color = diff < 0 ? 'var(--accent2)' : 'var(--danger)';
+    changeHtml = `<div class="sub" style="color:${color}">${arrow} ${fp(Math.abs(diff))} from last check</div>`;
+  }
+
+  g.innerHTML = `
+    <div class="stat-card ${pc(cur)}">
+      <div class="label">Best Price Found</div>
+      <div class="value">${fp(cur)}</div>
+      ${changeHtml}
+    </div>
+    <div class="stat-card info">
+      <div class="label">All-Time Low</div>
+      <div class="value">${fp(low)}</div>
+      <div class="sub">Across ${data.total_recordings||1} tracker runs</div>
+    </div>
+    <div class="stat-card ${cur<=TARGET?'good':'warn'}">
+      <div class="label">Target: ${fp(TARGET)}</div>
+      <div class="value">${cur<=TARGET?'✅':'❌'}</div>
+      <div class="sub">${cur<=TARGET?fp(TARGET-cur)+' under target':fp(cur-TARGET)+' above target'}</div>
+    </div>
+    <div class="stat-card info">
+      <div class="label">Windows Searched</div>
+      <div class="value">${windows}</div>
+      <div class="sub">±1 day flexibility on both ends</div>
+    </div>
+  `;
+}
+
+function renderFlights() {
+  const grid = document.getElementById('flightsGrid');
+  const flights = data.direct_flights || [];
+  grid.innerHTML = flights.map(f => `
+    <div class="flight-card">
+      <div>
+        <span class="flight-number">${f.flight}</span>
+        <span class="direction-tag">${f.direction}</span>
+      </div>
+      <div class="route">
+        <span class="airport">${f.from}</span>
+        <span class="arrow">✈</span>
+        <span class="airport">${f.to}</span>
+      </div>
+      <div class="times">
+        <span>🕐 Depart ${f.depart}</span>
+        <span>🕐 Arrive ${f.arrive}</span>
+        <span style="margin-left:auto;color:var(--text2);">${f.duration_min}min</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderCharts() {
+  renderHistoryChart();
+  renderWindowChart('history');
+}
+
+function renderHistoryChart() {
+  const ctx = document.getElementById('historyChart').getContext('2d');
+  if (charts.history) charts.history.destroy();
+  const hist = data.trip_history || [];
+
+  if (hist.length === 0) {
+    ctx.font = '14px system-ui'; ctx.fillStyle = '#8b8fa8'; ctx.textAlign = 'center';
+    ctx.fillText('Collecting data...', ctx.canvas.width/2, 160);
+    return;
+  }
+
+  charts.history = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: hist.map(h => fdt(h.date)),
+      datasets: [{
+        label: 'Best Trip Price',
+        data: hist.map(h => h.price),
+        borderColor: '#4f9cf9',
+        backgroundColor: 'rgba(79,156,249,0.08)',
+        fill: true, tension: 0.3,
+        pointRadius: hist.length > 30 ? 0 : 5,
+        pointBackgroundColor: hist.map(h => h.price <= TARGET ? '#2ecc71' : '#4f9cf9'),
+        pointBorderColor: hist.map(h => h.price <= TARGET ? '#2ecc71' : '#4f9cf9'),
+      }, {
+        label: `Target ($${TARGET})`,
+        data: hist.map(() => TARGET),
+        borderColor: '#2ecc71', borderDash: [6,4], pointRadius: 0, fill: false,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { color: '#e4e6f0' } },
+        tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: ${fp(ctx.raw)}` } }
+      },
+      scales: {
+        x: { ticks: { color:'#8b8fa8', maxTicksLimit:10 }, grid: { color:'#2e3348' } },
+        y: { ticks: { color:'#8b8fa8', callback: v => '$'+v }, grid: { color:'#2e3348' } }
+      }
+    }
+  });
+}
+
+function renderWindowChart(mode) {
+  const ctx = document.getElementById('windowChart').getContext('2d');
+  if (charts.window) charts.window.destroy();
+
+  let items;
+  if (mode === 'best') {
+    items = data.best_trips_by_date || [];
+  } else {
+    items = data.browse_history || [];
+  }
+
+  if (items.length === 0) {
+    ctx.font = '14px system-ui'; ctx.fillStyle = '#8b8fa8'; ctx.textAlign = 'center';
+    ctx.fillText('No window data yet...', ctx.canvas.width/2, 160);
+    return;
+  }
+
+  const colors = items.map(i => i.price <= TARGET ? '#2ecc71' : i.price <= TARGET*1.2 ? '#f39c12' : '#e74c3c');
+
+  charts.window = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: items.map(i => fd(i.departure)),
+      datasets: [{
+        label: 'Round Trip Price',
+        data: items.map(i => i.price),
+        backgroundColor: colors,
+        borderRadius: 6,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            title: ctx => `Depart: ${fd(items[ctx.dataIndex].departure)}`,
+            label: ctx => ` Price: ${fp(ctx.raw)}`,
+            afterLabel: ctx => {
+              const item = items[ctx.dataIndex];
+              return `Return: ${fd(item.return)}\n${item.days} days`;
+            }
+          }
+        }
+      },
+      scales: {
+        x: { ticks: { color:'#8b8fa8', maxRotation:45 }, grid: { color:'#2e3348' } },
+        y: { ticks: { color:'#8b8fa8', callback: v => '$'+v }, grid: { color:'#2e3348' }, beginAtZero: false }
+      }
+    }
+  });
+}
+
+function renderTable() {
+  const tbody = document.querySelector('#obsTable tbody');
+  const items = (data.browse_history || []).slice(0, 40);
+
+  if (items.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text2);padding:24px;">No observations yet</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = items.map(i => `
+    <tr>
+      <td>${fdt(i.date)}</td>
+      <td>${fd(i.departure)}</td>
+      <td>${fd(i.return)}</td>
+      <td>${i.days}d</td>
+      <td class="price-cell ${pc(i.price)}">${fp(i.price)}</td>
+      <td>${i.price<=TARGET?'✅ Good':i.price<=TARGET*1.2?'⚠️ Watch':'🔴 High'}</td>
+    </tr>
+  `).join('');
+}
+
+load();
+</script>
+</body>
+</html>

@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboards</title>
+<style>
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --border: #30363d;
+  --text: #c9d1d9;
+  --text2: #6e7681;
+  --accent: #58a6ff;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  padding: 40px 24px;
+  max-width: 800px;
+  margin: 0 auto;
+}
+h1 {
+  color: var(--accent);
+  font-size: 1.6rem;
+  margin-bottom: 8px;
+}
+.subtitle {
+  color: var(--text2);
+  font-size: 0.85rem;
+  margin-bottom: 32px;
+}
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+}
+.card {
+  display: block;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 20px;
+  text-decoration: none;
+  color: var(--text);
+  transition: border-color 0.2s, transform 0.1s;
+}
+.card:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+}
+.card-title {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--accent);
+  margin-bottom: 6px;
+}
+.card-meta {
+  color: var(--text2);
+  font-size: 0.75rem;
+}
+footer {
+  margin-top: 40px;
+  color: var(--text2);
+  font-size: 0.75rem;
+  text-align: center;
+}
+</style>
+</head>
+<body>
+<h1>Dashboards</h1>
+<p class="subtitle">Auto-generated index · 2 dashboards</p>
+<div class="grid">
+    <a class="card" href="flight-tracker/index.html">
+      <div class="card-title">flight-tracker</div>
+      <div class="card-meta">flight-tracker/index.html · 16.5 KB</div>
+    </a>
+    <a class="card" href="minipc-search/index.html">
+      <div class="card-title">minipc-search</div>
+      <div class="card-meta">minipc-search/index.html · 4.6 KB</div>
+    </a>
+</div>
+
+<footer>Generated 2026-07-02 00:05 UTC</footer>
+</body>
+</html>
