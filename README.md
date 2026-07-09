@@ -24,7 +24,7 @@ Run this script after your Docker Compose stacks are started. It currently inclu
 ### Usage
 
 ```bash
-curl -O https://raw.githubusercontent.com/josephcooley/server-setup/main/post-startup && chmod +x post-startup && sudo ./post-startup
+curl -O https://raw.githubusercontent.com/josephcooley/server-setup/main/post-startup.sh && chmod +x post-startup.sh && sudo ./post-startup.sh
 ```
 
 ## Configuration
