@@ -42,15 +42,6 @@ When run, it prompts you to choose:
 
 Existing destination files are skipped by default.
 
-## `dockge-setup.sh` - Dockge Only
-
-This script installs Docker, creates the Dockge directories, writes the Dockge compose file, starts Dockge, and syncs the stack files from this repository. It does not configure Samba, Hermes, or NFS mounts.
-
-### Usage
-
-```bash
-curl -O https://raw.githubusercontent.com/josephcooley/server-setup/main/dockge-setup.sh && chmod +x dockge-setup.sh && sudo ./dockge-setup.sh
-```
 
 ## `mounts.sh` - NFS Mounts Only
 
