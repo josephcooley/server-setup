@@ -294,15 +294,17 @@ else
     done <<< "$STACK_FILES"
 fi
 
-if [[ -z "$HERMES_FILES" ]]; then
-    print_warning "No files found under hermesconfig/ in the repository"
-else
-    print_subsection "Downloading hermesconfig folder into ${HERMES_AGENT_DIR}"
-    while IFS= read -r FULL_PATH; do
-        REL_PATH="${FULL_PATH#${HERMES_SOURCE_PREFIX}}"
-        DEST="${HERMES_AGENT_DIR}/${REL_PATH}"
-        download_file "$FULL_PATH" "$DEST"
-    done <<< "$HERMES_FILES"
+if [[ "$STACK_SOURCE_DIR" == "hermesstacks" ]]; then
+    if [[ -z "$HERMES_FILES" ]]; then
+        print_warning "No files found under hermesconfig/ in the repository"
+    else
+        print_subsection "Downloading hermesconfig folder into ${HERMES_AGENT_DIR}"
+        while IFS= read -r FULL_PATH; do
+            REL_PATH="${FULL_PATH#${HERMES_SOURCE_PREFIX}}"
+            DEST="${HERMES_AGENT_DIR}/${REL_PATH}"
+            download_file "$FULL_PATH" "$DEST"
+        done <<< "$HERMES_FILES"
+    fi
 fi
 
 # ====================================================================
