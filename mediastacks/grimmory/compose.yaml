@@ -1,59 +1,66 @@
 services:
+  # Upgrade path from Booklore:
+  # Keep your existing service name, container_name, database names/users, ports,
+  # and mounted volumes. Replace only the image line(s) with Grimmory tags.
   grimmory:
-    image: grimmory/grimmory:latest
+    # Stable release example:
+    image: grimmory/grimmory:v0.38.2
     # Convenience tag:
-    # image: grimmory/grimmory:<release-version>
-    # Alternative: ghcr.io/grimmory-tools/grimmory:<release-version>
-    # To build from source instead: comment out 'image' and uncomment below
-    # build: .
+    # image: grimmory/grimmory:latest
+    # Or the GHCR image:
+    # image: ghcr.io/grimmory-tools/grimmory:v0.38.2
+    # The image already embeds its own release version metadata.
     container_name: grimmory
     environment:
-      - USER_ID=${APP_USER_ID}
-      - GROUP_ID=${APP_GROUP_ID}
-      - TZ=${TZ}
-      - DATABASE_URL=${DATABASE_URL}
-      - DATABASE_USERNAME=${DB_USER}
-      - DATABASE_PASSWORD=${DB_PASSWORD}
-      - API_DOCS_ENABLED=${API_DOCS_ENABLED}
-      - DISK_TYPE=${DISK_TYPE}
+      - USER_ID=1000
+      - GROUP_ID=1000
+      - TZ=Etc/UTC
+      - DATABASE_URL=jdbc:mariadb://mariadb:3306/grimmory
+      - DATABASE_USERNAME=grimmory
+      - DATABASE_PASSWORD=${DATABASE_PASSWORD}
+      - SWAGGER_ENABLED=false
+      - FORCE_DISABLE_OIDC=false
+      # ALLOWED_ORIGINS=
+      # Override JVM memory defaults (the image ships sensible defaults for ~512 MB heap).
+      # Uncomment and adjust if you want a tighter or looser cap:
+      # JAVA_TOOL_OPTIONS=-Xmx256m
     depends_on:
       mariadb:
         condition: service_healthy
     ports:
-      - 6060:6060
+      - "6060:6060"
     volumes:
       - ./grimmory:/app/data
       - /mnt/Storage/Books:/books
       - /mnt/Storage/Books/bookdrop:/bookdrop
-    healthcheck:
-      test: wget -q -O - http://localhost:6060/api/v1/healthcheck
-      interval: 60s
-      retries: 5
-      start_period: 60s
-      timeout: 10s
+    # Uncomment the block below if you need to override the defaults:
+    #healthcheck:
+    #  test: wget -q --spider http://localhost:6060/api/v1/healthcheck
+    #  interval: 60s
+    #  retries: 5
+    #  start_period: 60s
+    #  timeout: 10s
+    #
+    # Uncomment the block below if you want to disable healthchecks:
+    #healthcheck:
+    #  disable: true
     restart: unless-stopped
+
   mariadb:
-    image: lscr.io/linuxserver/mariadb:11.4.5
-    container_name: mariadb
+    image: lscr.io/linuxserver/mariadb:11.4.8
     environment:
-      - PUID=${DB_USER_ID}
-      - PGID=${DB_GROUP_ID}
-      - TZ=${TZ}
+      - PUID=1000
+      - PGID=1000
+      - TZ=Etc/UTC
       - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
-      - MYSQL_DATABASE=${MYSQL_DATABASE}
-      - MYSQL_USER=${DB_USER}
-      - MYSQL_PASSWORD=${DB_PASSWORD}
+      - MYSQL_DATABASE=grimmory
+      - MYSQL_USER=grimmory
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
     volumes:
-      - ./mariadb/config:/config
+      - ./maria-db:/config
     restart: unless-stopped
     healthcheck:
-      test:
-        - CMD
-        - mariadb-admin
-        - ping
-        - -h
-        - localhost
+      test: [ "CMD", "mariadb-admin", "ping", "-h", "localhost" ]
       interval: 5s
       timeout: 5s
       retries: 10
-networks: {}
