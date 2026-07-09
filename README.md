@@ -9,7 +9,7 @@ This script will install Docker, downloads your selected stack set (`hermesstack
 ### Usage
 
 ```bash
-curl -O https://raw.githubusercontent.com/josephcooley/server-setup/main/hermes-setup.sh && chmod +x hermes-setup.sh && sudo ./hermes-setup.sh
+curl -O https://raw.githubusercontent.com/josephcooley/server-setup/main/hermes-setup.sh && chmod +x hermes-setup.sh && sudo hermes-setup.sh
 ```
 
 ## `post-startup` - Post-Install / Post-Start Tasks
