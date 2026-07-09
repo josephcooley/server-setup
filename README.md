@@ -12,6 +12,21 @@ This script will install Docker, downloads your selected stack set (`hermesstack
 curl -O https://raw.githubusercontent.com/josephcooley/server-setup/main/hermes-setup.sh && chmod +x hermes-setup.sh && sudo ./hermes-setup.sh
 ```
 
+## `post-startup` - Post-Install / Post-Start Tasks
+
+Run this script after your Docker Compose stacks are started. It currently includes:
+
+- Step 1: Hermes dashboard setup (prompts for password, generates hash in container, updates `/opt/stacks/hermes/agent/config.yaml`)
+- Step 2: Generates and populates secrets in stack `.env` files:
+	- `manifest` -> `BETTER_AUTH_SECRET`
+	- `sure` -> `SECRET_KEY_BASE`
+
+### Usage
+
+```bash
+curl -O https://raw.githubusercontent.com/josephcooley/server-setup/main/post-startup && chmod +x post-startup && sudo ./post-startup
+```
+
 ## Configuration
 
 Edit the configuration block at the top of `hermes-setup.sh` before running if you want to change any defaults:
