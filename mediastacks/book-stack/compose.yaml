@@ -32,7 +32,6 @@ services:
   komga:
     container_name: komga
     image: gotson/komga
-    container_name: komga
     environment:
       - PUID=1000
       - PGID=1000
