@@ -231,6 +231,8 @@ BRANCH="main"
 STACKS_RAW_BASE="https://raw.githubusercontent.com/${REPO}/${BRANCH}"
 GITHUB_API="https://api.github.com/repos/${REPO}/git/trees/${BRANCH}?recursive=1"
 SOURCE_PREFIX="${STACK_SOURCE_DIR}/"
+HERMES_SOURCE_PREFIX="hermes/"
+HERMES_AGENT_DIR="${STACKS_DIR}/hermes/agent"
 
 print_subsection "Fetching file list from GitHub API"
 API_RESPONSE=$(curl -fsSL "$GITHUB_API")
@@ -252,32 +254,55 @@ STACK_FILES=$(echo "$API_RESPONSE" | awk -v prefix="$SOURCE_PREFIX" '
     }
 ')
 
+HERMES_FILES=$(echo "$API_RESPONSE" | awk -v prefix="$HERMES_SOURCE_PREFIX" '
+    $0 ~ "\"path\"[[:space:]]*:[[:space:]]*\"" prefix {
+        path=$0
+        sub(/^.*"path"[[:space:]]*:[[:space:]]*"/, "", path)
+        sub(/".*$/, "", path)
+    }
+    /"type"[[:space:]]*:[[:space:]]*"blob"/ && path ~ ("^" prefix) {
+        print path
+        path=""
+    }
+')
+
+download_file() {
+    local rel_path="$1"
+    local dest_path="$2"
+
+    if [[ -e "$dest_path" ]]; then
+        print_info "Skipping existing file: ${rel_path}"
+        return 0
+    fi
+
+    mkdir -p "$(dirname "$dest_path")"
+    if curl -fsSL "${STACKS_RAW_BASE}/${rel_path}" -o "$dest_path"; then
+        print_success "Downloaded: ${rel_path}"
+    else
+        print_warning "Failed to download: ${rel_path}"
+    fi
+}
+
 if [[ -z "$STACK_FILES" ]]; then
     print_warning "No files found under ${STACK_SOURCE_DIR}/ in the repository"
 else
     print_subsection "Downloading ${STACK_SOURCE_LABEL} into $STACKS_DIR"
-    download_file() {
-        local rel_path="$1"
-        local dest_path="$2"
-
-        if [[ -e "$dest_path" ]]; then
-            print_info "Skipping existing file: ${rel_path}"
-            return 0
-        fi
-
-        mkdir -p "$(dirname "$dest_path")"
-        if curl -fsSL "${STACKS_RAW_BASE}/${rel_path}" -o "$dest_path"; then
-            print_success "Downloaded: ${rel_path}"
-        else
-            print_warning "Failed to download: ${rel_path}"
-        fi
-    }
-
     while IFS= read -r FULL_PATH; do
         REL_PATH="${FULL_PATH#${SOURCE_PREFIX}}"
         DEST="$STACKS_DIR/$REL_PATH"
         download_file "$FULL_PATH" "$DEST"
     done <<< "$STACK_FILES"
+fi
+
+if [[ -z "$HERMES_FILES" ]]; then
+    print_warning "No files found under hermes/ in the repository"
+else
+    print_subsection "Downloading hermes folder into ${HERMES_AGENT_DIR}"
+    while IFS= read -r FULL_PATH; do
+        REL_PATH="${FULL_PATH#${HERMES_SOURCE_PREFIX}}"
+        DEST="${HERMES_AGENT_DIR}/${REL_PATH}"
+        download_file "$FULL_PATH" "$DEST"
+    done <<< "$HERMES_FILES"
 fi
 
 # ====================================================================
