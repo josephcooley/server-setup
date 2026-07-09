@@ -24,7 +24,6 @@ SAMBA_PASSWORD=""  # Leave empty to be prompted at startup
 
 # Dockge Configuration
 DOCKGE_PORT="5001"
-DOCKGE_DIR="/opt/dockge"
 STACKS_DIR="/opt/stacks"
 
 # Prefer the invoking user for Hermes config when running via sudo.
@@ -325,13 +324,13 @@ fi
 print_section "STEP 4: DOCKGE SETUP"
 
 print_subsection "Creating Dockge directories"
-mkdir -p "$DOCKGE_DIR"
-chown -R "$TARGET_USER:$TARGET_GROUP" "$DOCKGE_DIR"
 mkdir -p "$STACKS_DIR"
-print_success "Directories created: $DOCKGE_DIR, $STACKS_DIR"
+mkdir -p "$STACKS_DIR/dockge"
+chown -R "$TARGET_USER:$TARGET_GROUP" "$STACKS_DIR/dockge"
+print_success "Directories created: $STACKS_DIR/dockge, $STACKS_DIR"
 
 print_subsection "Creating compose.yaml for Dockge"
-cat > "$DOCKGE_DIR/compose.yaml" << EOF
+cat > "$STACKS_DIR/dockge/compose.yaml" << EOF
 services:
     dockge:
         image: louislam/dockge:latest
@@ -350,8 +349,8 @@ EOF
 print_success "Dockge compose.yaml created"
 
 print_subsection "Starting Dockge container"
-cd "$DOCKGE_DIR"
-chown -R "$TARGET_USER:$TARGET_GROUP" "$DOCKGE_DIR"
+cd "$STACKS_DIR/dockge"
+chown -R "$TARGET_USER:$TARGET_GROUP" "$STACKS_DIR/dockge"
 docker compose up -d
 
 # Wait until the Dockge container appears in docker ps instead of using a fixed delay.
