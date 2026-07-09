@@ -3,7 +3,7 @@ services:
     image: lscr.io/linuxserver/sabnzbd:latest
     container_name: sabnzbd
     volumes:
-      - ${STACKROOT}/stacks/sabnzbd:/config
+      - ./sabnzbd:/config
       - ${SHAREROOT}/Downloads:/downloads
     environment:
       - PUID=1000
@@ -16,7 +16,7 @@ services:
     image: lscr.io/linuxserver/sonarr:latest
     container_name: sonarr
     volumes:
-      - ${STACKROOT}/stacks/sonarr:/config
+      - ./sonarr:/config
       - ${SHAREROOT}/TV:/TV
       - ${SHAREROOT}/Downloads:/downloads
     environment:
@@ -30,7 +30,7 @@ services:
     image: lscr.io/linuxserver/radarr:latest
     container_name: radarr
     volumes:
-      - ${STACKROOT}/stacks/radarr:/config
+      - ./radarr:/config
       - ${SHAREROOT}/Movies:/movies
       - ${SHAREROOT}/Downloads:/downloads
     environment:
@@ -48,7 +48,7 @@ services:
       - PGID=1000
       - TZ=America/Los_Angeles
     volumes:
-      - ${STACKROOT}/stacks/prowlarr:/config
+      - ./prowlarr:/config
       - ${SHAREROOT}:/Storage
       - ${SHAREROOT}/Downloads:/downloads
     ports:
@@ -58,7 +58,7 @@ services:
     image: santiagosayshey/profilarr:latest
     container_name: profilarr
     volumes:
-      - ${STACKROOT}/stacks/profilarr:/config
+      - ./profilarr:/config
     environment:
       - TZ=America/Los_Angeles
     ports:
