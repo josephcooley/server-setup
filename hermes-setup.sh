@@ -231,7 +231,7 @@ BRANCH="main"
 STACKS_RAW_BASE="https://raw.githubusercontent.com/${REPO}/${BRANCH}"
 GITHUB_API="https://api.github.com/repos/${REPO}/git/trees/${BRANCH}?recursive=1"
 SOURCE_PREFIX="${STACK_SOURCE_DIR}/"
-HERMES_SOURCE_PREFIX="hermes/"
+HERMES_SOURCE_PREFIX="hermesconfig/"
 HERMES_AGENT_DIR="${STACKS_DIR}/hermes/agent"
 
 print_subsection "Fetching file list from GitHub API"
@@ -295,9 +295,9 @@ else
 fi
 
 if [[ -z "$HERMES_FILES" ]]; then
-    print_warning "No files found under hermes/ in the repository"
+    print_warning "No files found under hermesconfig/ in the repository"
 else
-    print_subsection "Downloading hermes folder into ${HERMES_AGENT_DIR}"
+    print_subsection "Downloading hermesconfig folder into ${HERMES_AGENT_DIR}"
     while IFS= read -r FULL_PATH; do
         REL_PATH="${FULL_PATH#${HERMES_SOURCE_PREFIX}}"
         DEST="${HERMES_AGENT_DIR}/${REL_PATH}"
