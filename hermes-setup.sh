@@ -30,14 +30,6 @@ STACKS_DIR="/opt/stacks"
 # Prefer the invoking user for Hermes config when running via sudo.
 TARGET_USER="${SUDO_USER:-${USER:-root}}"
 TARGET_GROUP="$(id -gn "$TARGET_USER")"
-if [[ "$TARGET_USER" == "root" ]]; then
-    TARGET_HOME="/root"
-else
-    TARGET_HOME="$(getent passwd "$TARGET_USER" | cut -d: -f6)"
-    if [[ -z "$TARGET_HOME" ]]; then
-        TARGET_HOME="/home/$TARGET_USER"
-    fi
-fi
 SAMBA_USERNAME="$TARGET_USER"
 
 # ====================================================================
@@ -103,24 +95,33 @@ print_success "Primary IP: $PRIMARY_IP"
 print_section "STACK FAMILY SELECTION"
 
 while true; do
-    echo "Choose which stack folder to download in step 4:"
+    echo "Choose which stack folder to download in step 3:"
     echo "  1) Hermes stacks"
     echo "  2) Media stacks"
-    read -rp "Enter choice [1-2]: " STACK_CHOICE
+    echo "  3) Both Hermes and Media stacks"
+    read -rp "Enter choice [1-3]: " STACK_CHOICE
 
     case "$STACK_CHOICE" in
         1)
-            STACK_SOURCE_DIR="hermesstacks"
             STACK_SOURCE_LABEL="Hermes stacks"
+            DOWNLOAD_SOURCE_DIRS=("hermesstacks")
+            INCLUDE_HERMES_CONFIG=true
             break
             ;;
         2)
-            STACK_SOURCE_DIR="mediastacks"
             STACK_SOURCE_LABEL="Media stacks"
+            DOWNLOAD_SOURCE_DIRS=("mediastacks")
+            INCLUDE_HERMES_CONFIG=false
+            break
+            ;;
+        3)
+            STACK_SOURCE_LABEL="Hermes + Media stacks"
+            DOWNLOAD_SOURCE_DIRS=("hermesstacks" "mediastacks")
+            INCLUDE_HERMES_CONFIG=true
             break
             ;;
         *)
-            print_error "Invalid choice. Enter 1 or 2."
+            print_error "Invalid choice. Enter 1, 2, or 3."
             ;;
     esac
 done
@@ -230,7 +231,6 @@ REPO="josephcooley/server-setup"
 BRANCH="main"
 STACKS_RAW_BASE="https://raw.githubusercontent.com/${REPO}/${BRANCH}"
 GITHUB_API="https://api.github.com/repos/${REPO}/git/trees/${BRANCH}?recursive=1"
-SOURCE_PREFIX="${STACK_SOURCE_DIR}/"
 HERMES_SOURCE_PREFIX="hermesconfig/"
 HERMES_AGENT_DIR="${STACKS_DIR}/hermes/agent"
 
@@ -240,19 +240,6 @@ if [[ -z "$API_RESPONSE" ]]; then
     print_error "Failed to reach GitHub API"
     exit 1
 fi
-
-# Extract only blob paths under the selected source folder so directories are not treated as downloads.
-STACK_FILES=$(echo "$API_RESPONSE" | awk -v prefix="$SOURCE_PREFIX" '
-    $0 ~ "\"path\"[[:space:]]*:[[:space:]]*\"" prefix {
-        path=$0
-        sub(/^.*"path"[[:space:]]*:[[:space:]]*"/, "", path)
-        sub(/".*$/, "", path)
-    }
-    /"type"[[:space:]]*:[[:space:]]*"blob"/ && path ~ ("^" prefix) {
-        print path
-        path=""
-    }
-')
 
 HERMES_FILES=$(echo "$API_RESPONSE" | awk -v prefix="$HERMES_SOURCE_PREFIX" '
     $0 ~ "\"path\"[[:space:]]*:[[:space:]]*\"" prefix {
@@ -283,18 +270,42 @@ download_file() {
     fi
 }
 
-if [[ -z "$STACK_FILES" ]]; then
-    print_warning "No files found under ${STACK_SOURCE_DIR}/ in the repository"
-else
-    print_subsection "Downloading ${STACK_SOURCE_LABEL} into $STACKS_DIR"
+download_stack_folder() {
+    local source_dir="$1"
+    local source_prefix="${source_dir}/"
+
+    # Extract only blob paths under the selected source folder so directories are not treated as downloads.
+    local stack_files
+    stack_files=$(echo "$API_RESPONSE" | awk -v prefix="$source_prefix" '
+        $0 ~ "\"path\"[[:space:]]*:[[:space:]]*\"" prefix {
+            path=$0
+            sub(/^.*"path"[[:space:]]*:[[:space:]]*"/, "", path)
+            sub(/".*$/, "", path)
+        }
+        /"type"[[:space:]]*:[[:space:]]*"blob"/ && path ~ ("^" prefix) {
+            print path
+            path=""
+        }
+    ')
+
+    if [[ -z "$stack_files" ]]; then
+        print_warning "No files found under ${source_dir}/ in the repository"
+        return 0
+    fi
+
+    print_subsection "Downloading ${source_dir} into $STACKS_DIR"
     while IFS= read -r FULL_PATH; do
-        REL_PATH="${FULL_PATH#${SOURCE_PREFIX}}"
+        REL_PATH="${FULL_PATH#${source_prefix}}"
         DEST="$STACKS_DIR/$REL_PATH"
         download_file "$FULL_PATH" "$DEST"
-    done <<< "$STACK_FILES"
-fi
+    done <<< "$stack_files"
+}
 
-if [[ "$STACK_SOURCE_DIR" == "hermesstacks" ]]; then
+for SOURCE_DIR in "${DOWNLOAD_SOURCE_DIRS[@]}"; do
+    download_stack_folder "$SOURCE_DIR"
+done
+
+if [[ "$INCLUDE_HERMES_CONFIG" == "true" ]]; then
     if [[ -z "$HERMES_FILES" ]]; then
         print_warning "No files found under hermesconfig/ in the repository"
     else
@@ -315,7 +326,7 @@ print_section "STEP 4: DOCKGE SETUP"
 
 print_subsection "Creating Dockge directories"
 mkdir -p "$DOCKGE_DIR"
-chown -R joseph:joseph "$DOCKGE_DIR"
+chown -R "$TARGET_USER:$TARGET_GROUP" "$DOCKGE_DIR"
 mkdir -p "$STACKS_DIR"
 print_success "Directories created: $DOCKGE_DIR, $STACKS_DIR"
 
@@ -342,7 +353,14 @@ print_subsection "Starting Dockge container"
 cd "$DOCKGE_DIR"
 chown -R "$TARGET_USER:$TARGET_GROUP" "$DOCKGE_DIR"
 docker compose up -d
-sleep 3
+
+# Wait until the Dockge container appears in docker ps instead of using a fixed delay.
+for _ in {1..20}; do
+    if docker ps --format '{{.Names}}' | grep -qx "dockge"; then
+        break
+    fi
+    sleep 1
+done
 
 if docker ps | grep -q dockge; then
     print_success "Dockge container is running"
@@ -468,7 +486,14 @@ fi
 print_subsection "Starting Samba services"
 systemctl enable smbd nmbd 2>/dev/null || systemctl enable smb 2>/dev/null || true
 systemctl restart smbd nmbd 2>/dev/null || systemctl restart smb 2>/dev/null || true
-sleep 2
+
+# Wait for Samba service activation instead of relying on a fixed delay.
+for _ in {1..20}; do
+    if systemctl is-active --quiet smbd 2>/dev/null || systemctl is-active --quiet smb 2>/dev/null; then
+        break
+    fi
+    sleep 1
+done
 
 if systemctl is-active --quiet smbd 2>/dev/null || systemctl is-active --quiet smb 2>/dev/null; then
     print_success "Samba services are running"
