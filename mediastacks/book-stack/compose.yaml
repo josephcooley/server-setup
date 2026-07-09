@@ -25,13 +25,13 @@ services:
     volumes:
       - ./audiobookshelf:/config
       - ${SHAREROOT}/Books/Audiobooks:/audiobooks
-      - ${SHAREROOT}/Books/Audiobooks:/metadata
+      - ${SHAREROOT}/Books/Audiobooks-metadata:/metadata
     restart: unless-stopped
 
 #komga is a self-hosted media server for managing and reading comics and manga. It provides a web interface for accessing your comic library from any device with a web browser. The configuration provided sets up the Komga service with the necessary environment variables, volume mappings, and port settings.    
   komga:
+    image: gotson/komga:latest
     container_name: komga
-    image: gotson/komga
     environment:
       - PUID=1000
       - PGID=1000
@@ -41,15 +41,15 @@ services:
       - ${SHAREROOT}/Books/Comics:/data
     ports:
       - 25600:25600
-    restart: unless-stoppedS
+    restart: unless-stopped
 
 #shelfmark is a self-hosted application for managing and organizing your book collection. It provides a web interface for accessing your book library from any device with a web browser. The configuration provided sets up the Shelfmark service with the necessary environment variables, volume mappings, and port settings.
   shelfmark:
     image: ghcr.io/calibrain/shelfmark:latest
     container_name: shelfmark
     environment:
-      PUID=1000
-      PGID=1000
+      - PUID=1000
+      - PGID=1000
     ports:
       - 8084:8084
     restart: unless-stopped
@@ -58,4 +58,3 @@ services:
       - ./shelfmark:/config # App configuration
       # Required for torrent / usenet - path must match your download client's volume exactly
       - ${SHAREROOT}/Downloads:${SHAREROOT}/Downloads
-networks: {}
