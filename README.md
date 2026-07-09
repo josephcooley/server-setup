@@ -12,7 +12,7 @@ This script will install Docker, downloads your selected stack set (`hermesstack
 curl -O https://raw.githubusercontent.com/josephcooley/server-setup/main/hermes-setup.sh && chmod +x hermes-setup.sh && sudo hermes-setup.sh
 ```
 
-## `post-startup` - Post-Install / Post-Start Tasks
+## `post-startup.sh` - Post-Install / Post-Start Tasks
 
 Run this script after your Docker Compose stacks are started. It currently includes:
 
