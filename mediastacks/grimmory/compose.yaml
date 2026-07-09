@@ -4,7 +4,7 @@ services:
   # and mounted volumes. Replace only the image line(s) with Grimmory tags.
   grimmory:
     # Stable release example:
-    image: grimmory/grimmory:v0.38.2
+    image: grimmory/grimmory:latest
     # Convenience tag:
     # image: grimmory/grimmory:latest
     # Or the GHCR image:
@@ -47,15 +47,15 @@ services:
     restart: unless-stopped
 
   mariadb:
-    image: lscr.io/linuxserver/mariadb:11.4.8
+    image: lscr.io/linuxserver/mariadb:latest
     environment:
       - PUID=1000
       - PGID=1000
       - TZ=Etc/UTC
-      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_ROOT_PASSWORD=${DATABASE_ROOT_PASSWORD}
       - MYSQL_DATABASE=grimmory
       - MYSQL_USER=grimmory
-      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - MYSQL_PASSWORD=${DATABASE_PASSWORD}
     volumes:
       - ./maria-db:/config
     restart: unless-stopped
