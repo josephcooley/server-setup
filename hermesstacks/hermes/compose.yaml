@@ -22,7 +22,7 @@ services:
     volumes:
       - ./agent:/home/hermes/.hermes
       - hermes-agent-src:/opt/hermes
-      - /opt/stacks:opt/stacks
+      - /opt/stacks:/opt/stacks
       - hermes-data:/opt/data
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
