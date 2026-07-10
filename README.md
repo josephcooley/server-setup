@@ -27,6 +27,16 @@ Run this script after your Docker Compose stacks are started. It currently inclu
 curl -O https://raw.githubusercontent.com/josephcooley/server-setup/main/post-startup.sh && chmod +x post-startup.sh && sudo ./post-startup.sh
 ```
 
+## `uipassword.sh` - Hermes Dashboard Password Setup
+
+Run this script to configure Hermes dashboard basic auth only. It prompts for a dashboard password, generates the password hash in the running `hermes-agent` container, prepends the dashboard auth block to `/opt/stacks/hermes/agent/config.yaml`, and restarts Hermes.
+
+### Usage
+
+```bash
+curl -O https://raw.githubusercontent.com/josephcooley/server-setup/main/uipassword.sh && chmod +x uipassword.sh && sudo ./uipassword.sh
+```
+
 ## Configuration
 
 Edit the configuration block at the top of `hermes-setup.sh` before running if you want to change any defaults:
