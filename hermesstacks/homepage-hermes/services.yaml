@@ -16,11 +16,6 @@
         href: http://${HOMEPAGE_HOST}:8085
         description: Manifest
         icon: sh-manifest.png
-    
-    - Dozzle:
-        href: http://${HOMEPAGE_HOST}:2099
-        description: Dozzle log viewer
-        icon: dozzle
 
     - Dashboards:
         href: http://${HOMEPAGE_HOST}:8080
@@ -53,15 +48,16 @@
         href: http://${HOMEPAGE_HOST}:8443
         description: VS Code in the browser
         icon: vscode
-    - Filebrowser:
-        href: http://${HOMEPAGE_HOST}:8383
-        description: Filebrowser file manager
-        icon: filebrowser
+    - Dockhand:
+        href: http://${HOMEPAGE_HOST}:3099
+        description: Docker container manager
+        icon: dockhand
         widget:
-          type: filebrowser
-          url: http://${HOMEPAGE_HOST}:8383
-          username: Joseph
-          password: ${HOMEPAGE_FILEBROWSER_PASSWORD}
+          type: dockhand
+          url: http://localhost:3001
+          #environment: local # optional: name or id; aggregates all when omitted
+          username: joseph
+          password: ${DOCKHAND_PASSWORD}
 
 - Documents & Tools:
     - Paperless-ngx:
