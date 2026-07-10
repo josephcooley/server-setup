@@ -1,96 +1,96 @@
 # For configuration options and examples, please see:
 # https://gethomepage.dev/configs/services/
-# Homepage Address: http://${HOST}:3000
+# Homepage Address: http://localhost:3000
 - Media Stack:
     - SABnzbd:
-        href: http://${HOST}:8585
+        href: http://localhost:8585
         description: SABnzbd downloader
         icon: sabnzbd
         widget:
           type: sabnzbd
-          url: http://${HOST}:8585
+          url: http://localhost:8585
           key: ${SABNZBD_API_KEY}
 
     - Sonarr:
-        href: http://${HOST}:8989
+        href: http://localhost:8989
         description: Sonarr TV manager
         icon: sonarr
         widget:
           type: sonarr
-          url: http://${HOST}:8989
+          url: http://localhost:8989
           key: ${SONARR_API_KEY}
 
     - Radarr:
-        href: http://${HOST}:7878
+        href: http://localhost:7878
         description: Radarr movie manager
         icon: radarr
         widget:
           type: radarr
-          url: http://${HOST}:7878
+          url: http://localhost:7878
           key: ${RADARR_API_KEY}
 
     - Prowlarr:
-        href: http://${HOST}:9696
+        href: http://localhost:9696
         description: Prowlarr indexer manager
         icon: prowlarr
         widget:
           type: prowlarr
-          url: http://${HOST}:9696
+          url: http://localhost:9696
           key: ${PROWLARR_API_KEY}
 
     - Profilarr:
-      href: http://${HOST}:6868
+      href: http://localhost:6868
         description: Profilarr profile manager
         icon: mdi-chart-box
 
 - Book Stack:
     - Calibre-web:
-        href: http://${HOST}:8083
+        href: http://localhost:8083
         description: Calibre-web library manager
         icon: calibre-web
         widget:
           type: calibreweb
-          url: http://${HOST}:8083
+          url: http://localhost:8083
           username: ${CALIBREWEB_USERNAME}
           password: ${CALIBREWEB_PASSWORD}
 
     - Audiobookshelf:
-        href: http://${HOST}:13378
+        href: http://localhost:13378
         description: Audiobookshelf media server
         icon: audiobookshelf
         widget:
           type: audiobookshelf
-          url: http://${HOST}:13378
+          url: http://localhost:13378
           key: ${AUDIOBOOKSHELF_KEY}
 
     - Komga:
-        href: http://${HOST}:25600
+        href: http://localhost:25600
         description: Komga comics server
         icon: komga
         widget:
           type: komga
-          url: http://${HOST}:25600
+          url: http://localhost:25600
           username: ${KOMGA_USERNAME}
           password: ${KOMGA_PASSWORD}
           key: ${KOMGA_API_KEY}
 
 - Book Aquisition:
     - Grimmory:
-      href: http://${HOST}:6060
+      href: http://localhost:6060
         description: Grimmory book management app
         icon: mdi-book-open-page-variant
     - Shelfmark:
-      href: http://${HOST}:8084
+      href: http://localhost:8084
         description: Sheflmark book management app
         icon: mdi-book-open-page-variant    
 
 - Downloads:
     - qBittorrent:
-        href: http://${HOST}:21413
+        href: http://localhost:21413
         description: qBittorrent torrent client
         icon: qbittorrent
         widget:
           type: qbittorrent
-          url: http://${HOST}:21413
+          url: http://localhost:21413
           username: ${QBITTORRENT_USERNAME}
           password: ${QBITTORRENT_PASSWORD}

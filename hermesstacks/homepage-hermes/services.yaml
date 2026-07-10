@@ -1,55 +1,55 @@
 # For configuration options and examples, please see:
 # https://gethomepage.dev/configs/services/
-# Homepage Address: http://${HOMEPAGE_HOST}:3000
+# Homepage Address: http://localhost:3000
 - AI Services:
     - Hermes Dashboard:
-        href: http://${HOMEPAGE_HOST}:9119
+        href: http://localhost:9119
         description: Hermes agent dashboard
         icon: sh-hermes-agent.png
 
     - Hermes WebUI:
-        href: http://${HOMEPAGE_HOST}:8787
+        href: http://localhost:8787
         description: Hermes web interface
         icon: mdi-chat
     
     - Manifest:
-        href: http://${HOMEPAGE_HOST}:8085
+        href: http://localhost:8085
         description: Manifest
         icon: sh-manifest.png
 
     - Dashboards:
-        href: http://${HOMEPAGE_HOST}:8080
+        href: http://localhost:8080
         description: Static dashboards site
         icon: mdi-view-dashboard
         
 - Home Automation:
     - Home Assistant:
-        href: http://${HOMEPAGE_HOST}:8123
+        href: http://localhost:8123
         description: Home automation
         icon: home-assistant
         widget:
           type: homeassistant
-          url: http://${HOMEPAGE_HOST}:8123
+          url: http://localhost:8123
           key: ${HOMEPAGE_HOME_ASSISTANT_KEY}
     - Frigate:
-        href: http://${HOMEPAGE_HOST}:5420
+        href: http://localhost:5420
         description: NVR and object detection
         icon: frigate
         widget:
           type: frigate
-          url: http://${HOMEPAGE_HOST}:5420
+          url: http://localhost:5420
 
 - Development:
     - Dockge:
-        href: http://${HOMEPAGE_HOST}:5001
+        href: http://localhost:5001
         description: Dockge container manager
         icon: dockge
     - Code Server:
-        href: http://${HOMEPAGE_HOST}:8443
+        href: http://localhost:8443
         description: VS Code in the browser
         icon: vscode
     - Dockhand:
-        href: http://${HOMEPAGE_HOST}:3099
+        href: http://localhost:3099
         description: Docker container manager
         icon: dockhand
         widget:
@@ -61,29 +61,29 @@
 
 - Documents & Tools:
     - Paperless-ngx:
-        href: http://${HOMEPAGE_HOST}:8010
+        href: http://localhost:8010
         description: Document management and OCR
         icon: mdi-file-document-multiple
         widget:
           type: paperlessngx
-          url: http://${HOMEPAGE_HOST}:8010
+          url: http://localhost:8010
           key: ${HOMEPAGE_PAPERLESS_KEY}
 
     - Tandoor:
-        href: http://${HOMEPAGE_HOST}:8082
+        href: http://localhost:8082
         description: Recipe manager
         icon: mdi-chef-hat
         widget:
           type: tandoor
-          url: http://${HOMEPAGE_HOST}:8082
+          url: http://localhost:8082
           key: ${HOMEPAGE_TANDOOR_KEY}
 
     - Sure:
-        href: http://${HOMEPAGE_HOST}:30007
+        href: http://localhost:30007
         description: Sure collaboration app
         icon: mdi-check-decagram
 
     - Tugtainer:
-        href: http://${HOMEPAGE_HOST}:9412
+        href: http://localhost:9412
         description: Container update dashboard
         icon: mdi-docker
