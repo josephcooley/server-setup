@@ -9,10 +9,12 @@ services:
     image: postgres:15
     container_name: paperless-db
     restart: unless-stopped
+    env_file:
+      - .env
     environment:
-      POSTGRES_DB: paperless
-      POSTGRES_USER: paperless
-      POSTGRES_PASSWORD: paperless
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - ./postgres:/var/lib/postgresql/data
   paperless:
@@ -24,12 +26,14 @@ services:
     ports:
       - 8010:8000
     restart: unless-stopped
+    env_file:
+      - .env
     environment:
       PAPERLESS_REDIS: redis://paperless-redis:6379
       PAPERLESS_DBHOST: paperless-db
-      PAPERLESS_DBNAME: paperless
-      PAPERLESS_DBUSER: paperless
-      PAPERLESS_DBPASS: paperless
+      PAPERLESS_DBNAME: ${PAPERLESS_DBNAME}
+      PAPERLESS_DBUSER: ${PAPERLESS_DBUSER}
+      PAPERLESS_DBPASS: ${PAPERLESS_DBPASS}
       PAPERLESS_TIME_ZONE: America/Los_Angeles
       USERMAP_UID: 1000
       USERMAP_GID: 1000

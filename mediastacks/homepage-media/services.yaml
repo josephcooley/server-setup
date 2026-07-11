@@ -39,7 +39,7 @@
           key: ${PROWLARR_API_KEY}
 
     - Profilarr:
-      href: http://{{HOMEPAGE_VAR_MY_IP}}:6868
+        href: http://{{HOMEPAGE_VAR_MY_IP}}:6868
         description: Profilarr profile manager
         icon: mdi-chart-box
 
@@ -76,11 +76,11 @@
 
 - Book Aquisition:
     - Grimmory:
-      href: http://{{HOMEPAGE_VAR_MY_IP}}:6060
+        href: http://{{HOMEPAGE_VAR_MY_IP}}:6060
         description: Grimmory book management app
         icon: mdi-book-open-page-variant
     - Shelfmark:
-      href: http://{{HOMEPAGE_VAR_MY_IP}}:8084
+        href: http://{{HOMEPAGE_VAR_MY_IP}}:8084
         description: Sheflmark book management app
         icon: mdi-book-open-page-variant    
 

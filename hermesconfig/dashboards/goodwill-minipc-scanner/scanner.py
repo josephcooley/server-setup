@@ -8,9 +8,11 @@ NOTE: The API rate-limits after a few requests. We keep it to ~3-4 calls per run
 """
 
 import re
+import os
 import sys
 import json
 import time
+import tempfile
 import logging
 import html as html_mod
 from datetime import datetime
@@ -54,6 +56,8 @@ MINIPC_PATTERNS = [
 SCRIPT_DIR = Path(__file__).parent
 STATE_FILE = SCRIPT_DIR / "seen_listings.json"
 OUTPUT_FILE = SCRIPT_DIR / "results.json"
+LOCK_FILE = SCRIPT_DIR / ".scanner.lock"
+LOCK_STALE_AFTER_SECONDS = 2 * 60 * 60
 
 # HTML output directory on the workspace
 HTML_DIR = Path("/workspace/dashboards/minipc-search")
@@ -71,6 +75,47 @@ logging.basicConfig(
     ],
 )
 log = logging.getLogger("shopgoodwill-scanner")
+
+
+def atomic_write_text(path: Path, text: str, encoding: str = "utf-8"):
+    """Write file atomically to avoid partial/corrupted JSON on overlap/interruption."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.NamedTemporaryFile("w", dir=path.parent, delete=False, encoding=encoding) as tmp:
+        tmp.write(text)
+        tmp.flush()
+        os.fsync(tmp.fileno())
+        tmp_path = Path(tmp.name)
+    tmp_path.replace(path)
+
+
+def acquire_lock(lock_path: Path):
+    """Acquire a lock file for single-instance execution."""
+    now = time.time()
+    if lock_path.exists():
+        age = now - lock_path.stat().st_mtime
+        if age > LOCK_STALE_AFTER_SECONDS:
+            log.warning("Removing stale lock file: %s", lock_path)
+            try:
+                lock_path.unlink()
+            except OSError:
+                pass
+
+    try:
+        fd = os.open(str(lock_path), os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+        os.write(fd, str(os.getpid()).encode("utf-8"))
+        return fd
+    except FileExistsError:
+        return None
+
+
+def release_lock(fd, lock_path: Path):
+    try:
+        os.close(fd)
+    finally:
+        try:
+            lock_path.unlink()
+        except OSError:
+            pass
 
 
 # ── API ────────────────────────────────────────────────────────────────────────
@@ -191,7 +236,7 @@ def load_seen() -> set:
 
 
 def save_seen(seen: set):
-    STATE_FILE.write_text(json.dumps(list(seen)))
+    atomic_write_text(STATE_FILE, json.dumps(list(seen)))
 
 
 # ── HTML generation ────────────────────────────────────────────────────────────
@@ -468,7 +513,7 @@ def generate_html(matches: list[dict], scan_time: str, query: str):
     HTML_DIR.mkdir(parents=True, exist_ok=True)
 
     html = build_html(matches, scan_time, query)
-    HTML_FILE.write_text(html, encoding="utf-8")
+    atomic_write_text(HTML_FILE, html, encoding="utf-8")
     log.info(f"HTML page written to {HTML_FILE}")
 
     # Update history
@@ -487,7 +532,7 @@ def generate_html(matches: list[dict], scan_time: str, query: str):
     })
     # Keep last 50 runs
     history = history[-50:]
-    HISTORY_FILE.write_text(json.dumps(history, indent=2))
+    atomic_write_text(HISTORY_FILE, json.dumps(history, indent=2))
 
 
 # ── Main ───────────────────────────────────────────────────────────────────────
@@ -497,81 +542,89 @@ def run_scan():
     log.info(f"ShopGoodwill Mini PC scan — {datetime.now().isoformat()}")
     log.info("=" * 60)
 
-    session = make_session()
-    seen = load_seen()
-    matches = []
-    new_seen = set()
-
-    hour = datetime.now().hour
-    query_index = (hour // 4) % 4
-    queries = ["mini pc", "NUC", "GEEKOM", "Beelink"]
-    query = queries[query_index]
-
-    log.info(f"Using query: '{query}' (rotation {query_index + 1}/4)")
-
-    items = do_search(session, query, page=1)
-    if not items:
-        log.info("No results or API error.")
-        scan_time = datetime.now().isoformat()
-        generate_html([], scan_time, query)
-        save_seen(seen)
+    lock_fd = acquire_lock(LOCK_FILE)
+    if lock_fd is None:
+        log.warning("Scanner is already running; skipping overlapping invocation")
         return []
 
-    log.info(f"Got {len(items)} items")
+    try:
+        session = make_session()
+        seen = load_seen()
+        matches = []
+        new_seen = set()
 
-    for item in items:
-        item_id = str(item["itemId"])
-        if item_id in seen or item_id in new_seen:
-            continue
-        new_seen.add(item_id)
+        hour = datetime.now().hour
+        query_index = (hour // 4) % 4
+        queries = ["mini pc", "NUC", "GEEKOM", "Beelink"]
+        query = queries[query_index]
 
-        title = item.get("title", "")
-        description = (item.get("description") or "") or ""
+        log.info(f"Using query: '{query}' (rotation {query_index + 1}/4)")
 
-        if not is_minipc(title, description):
-            continue
+        items = do_search(session, query, page=1)
+        if not items:
+            log.info("No results or API error.")
+            scan_time = datetime.now().isoformat()
+            generate_html([], scan_time, query)
+            save_seen(seen)
+            return []
 
-        combined = f"{title} {description}"
-        if not has_modern_cpu(combined):
-            full_desc = get_description(session, item["itemId"])
-            combined = f"{title} {full_desc}"
-            if not has_modern_cpu(combined):
+        log.info(f"Got {len(items)} items")
+
+        for item in items:
+            item_id = str(item["itemId"])
+            if item_id in seen or item_id in new_seen:
                 continue
-            description = full_desc[:300]
+            new_seen.add(item_id)
 
-        match = {
-            "itemId": item["itemId"],
-            "title": title,
-            "description": description or "(see listing)",
-            "price": item.get("currentPrice", 0),
-            "buyNowPrice": item.get("buyNowPrice", 0),
-            "endTime": item.get("endTime", ""),
-            "imageURL": item.get("imageURL", ""),
-            "category": item.get("catFullName", ""),
-            "url": f"https://shopgoodwill.com/item/{item['itemId']}",
+            title = item.get("title", "")
+            description = (item.get("description") or "") or ""
+
+            if not is_minipc(title, description):
+                continue
+
+            combined = f"{title} {description}"
+            if not has_modern_cpu(combined):
+                full_desc = get_description(session, item["itemId"])
+                combined = f"{title} {full_desc}"
+                if not has_modern_cpu(combined):
+                    continue
+                description = full_desc[:300]
+
+            match = {
+                "itemId": item["itemId"],
+                "title": title,
+                "description": description or "(see listing)",
+                "price": item.get("currentPrice", 0),
+                "buyNowPrice": item.get("buyNowPrice", 0),
+                "endTime": item.get("endTime", ""),
+                "imageURL": item.get("imageURL", ""),
+                "category": item.get("catFullName", ""),
+                "url": f"https://shopgoodwill.com/item/{item['itemId']}",
+            }
+
+            log.info(f"  ✓ {title[:80]}")
+            log.info(f"    ${match['price']} (BN: ${match.get('buyNowPrice', 0)})  {match['url']}")
+            matches.append(match)
+
+        seen.update(new_seen)
+        save_seen(seen)
+
+        scan_time = datetime.now().isoformat()
+        results = {
+            "scan_time": scan_time,
+            "query": query,
+            "total_matches": len(matches),
+            "matches": matches,
         }
+        atomic_write_text(OUTPUT_FILE, json.dumps(results, indent=2))
 
-        log.info(f"  ✓ {title[:80]}")
-        log.info(f"    ${match['price']} (BN: ${match.get('buyNowPrice', 0)})  {match['url']}")
-        matches.append(match)
+        # Generate HTML page
+        generate_html(matches, scan_time, query)
 
-    seen.update(new_seen)
-    save_seen(seen)
-
-    scan_time = datetime.now().isoformat()
-    results = {
-        "scan_time": scan_time,
-        "query": query,
-        "total_matches": len(matches),
-        "matches": matches,
-    }
-    OUTPUT_FILE.write_text(json.dumps(results, indent=2))
-
-    # Generate HTML page
-    generate_html(matches, scan_time, query)
-
-    log.info(f"Done. {len(matches)} new matches.")
-    return matches
+        log.info(f"Done. {len(matches)} new matches.")
+        return matches
+    finally:
+        release_lock(lock_fd, LOCK_FILE)
 
 
 def format_report(matches: list[dict]) -> str:

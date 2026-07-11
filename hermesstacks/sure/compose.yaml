@@ -9,8 +9,8 @@
 # https://github.com/we-promise/sure/discussions/categories/general
 #
 x-db-env: &a1
-  POSTGRES_USER: ${POSTGRES_USER:-sure_user}
-  POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-sure_password}
+  POSTGRES_USER: ${POSTGRES_USER}
+  POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
   POSTGRES_DB: ${POSTGRES_DB:-sure_production}
 x-rails-env: &a2
   <<: *a1
@@ -86,8 +86,8 @@ services:
     environment:
       - POSTGRES_HOST=db
       - POSTGRES_DB=${POSTGRES_DB:-sure_production}
-      - POSTGRES_USER=${POSTGRES_USER:-sure_user}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-sure_password}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - SCHEDULE=@daily
       - BACKUP_KEEP_DAYS=7
       - BACKUP_KEEP_WEEKS=4

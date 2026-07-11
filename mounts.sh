@@ -34,6 +34,11 @@ print_section() {
     echo -e "${BLUE}>>> $1${NC}"
 }
 
+# Function to print subsection headers
+print_subsection() {
+    echo -e "${BLUE}→ $1${NC}"
+}
+
 # Function to print success messages
 print_success() {
     echo -e "${GREEN}✓ $1${NC}"
@@ -84,18 +89,30 @@ print_section "Step 4: Configuring NFS mounts in /etc/fstab"
 cp /etc/fstab /etc/fstab.backup
 print_warning "Backup of original fstab created at /etc/fstab.backup"
 
-# Add NFS mount entries
-cat >> /etc/fstab << 'EOF'
+# Add NFS mount entries idempotently (avoid duplicates on reruns)
+ensure_fstab_entry() {
+    local entry="$1"
+    if grep -Fqx "$entry" /etc/fstab; then
+        print_info "fstab entry already exists, skipping: $entry"
+    else
+        echo "$entry" >> /etc/fstab
+        print_success "Added fstab entry: $entry"
+    fi
+}
 
-# NFS Mounts
-192.168.1.100:/mnt/Storage/Books      /mnt/books      nfs   defaults,_netdev   0  0
-192.168.1.100:/mnt/Storage/Documents  /mnt/documents  nfs   defaults,_netdev   0  0
-192.168.1.100:/mnt/Storage/Downloads  /mnt/downloads  nfs   defaults,_netdev   0  0
-192.168.1.100:/mnt/Storage/TV         /mnt/tv         nfs   defaults,_netdev   0  0
-192.168.1.100:/mnt/Storage/Movies     /mnt/movies     nfs   defaults,_netdev   0  0
-EOF
+# Add a section header once
+if ! grep -Fqx "# NFS Mounts" /etc/fstab; then
+    echo "" >> /etc/fstab
+    echo "# NFS Mounts" >> /etc/fstab
+fi
 
-print_success "NFS mount entries added to /etc/fstab"
+ensure_fstab_entry "192.168.1.100:/mnt/Storage/Books      /mnt/books      nfs   defaults,_netdev   0  0"
+ensure_fstab_entry "192.168.1.100:/mnt/Storage/Documents  /mnt/documents  nfs   defaults,_netdev   0  0"
+ensure_fstab_entry "192.168.1.100:/mnt/Storage/Downloads  /mnt/downloads  nfs   defaults,_netdev   0  0"
+ensure_fstab_entry "192.168.1.100:/mnt/Storage/TV         /mnt/tv         nfs   defaults,_netdev   0  0"
+ensure_fstab_entry "192.168.1.100:/mnt/Storage/Movies     /mnt/movies     nfs   defaults,_netdev   0  0"
+
+print_success "NFS mount entries ensured in /etc/fstab"
 print_warning "⚠ IMPORTANT: Edit /etc/fstab and replace 192.168.1.100 with your actual NFS server IP address"
 echo ""
 

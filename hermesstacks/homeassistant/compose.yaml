@@ -9,8 +9,8 @@ services:
     restart: unless-stopped
     ports:
       - 8123:8123
-    privileged: true
-    network_mode: host
+    #privileged: true #I dont know why this needs to be privileged it is, see if this breaks anything
+    #network_mode: host #Dont know why this is network mode but see if it breaks anything if you change it to bridge
     environment:
       - TZ=America/Los_Angeles
     depends_on:
@@ -27,7 +27,7 @@ services:
   frigate:
     container_name: frigate
     image: ghcr.io/blakeblackshear/frigate:stable
-    privileged: true
+    #privileged: true #I dont know why this needs to be privileged it is, see if this breaks anything
     restart: unless-stopped
     shm_size: 1gb
     volumes:

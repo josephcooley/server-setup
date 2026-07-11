@@ -1,5 +1,7 @@
 services:
-#calibre-web is a web app for managing and reading eBooks. 
+#calibre-web is a web app for managing and reading eBooks.
+  calibre-web:
+    image: lscr.io/linuxserver/calibre-web:latest
     container_name: calibre-web
     environment:
       - PUID=1000
@@ -14,7 +16,9 @@ services:
       - 8083:8083
     restart: unless-stopped
 
-#AudioBookshelf is a self-hosted audiobook server that allows you to manage and stream your audiobooks. 
+#AudioBookshelf is a self-hosted audiobook server that allows you to manage and stream your audiobooks.
+  audiobookshelf:
+    image: ghcr.io/advplyr/audiobookshelf:latest
     container_name: audiobookshelf
     ports:
       - 13378:80
@@ -24,7 +28,7 @@ services:
       - ${SHAREROOT}/Books/Audiobooks-metadata:/metadata
     restart: unless-stopped
 
-#komga is a self-hosted media server for managing and reading comics and manga. 
+#komga is a self-hosted media server for managing and reading comics and manga.
   komga:
     image: gotson/komga:latest
     container_name: komga
@@ -39,7 +43,7 @@ services:
       - 25600:25600
     restart: unless-stopped
 
-#shelfmark is a self-hosted application for managing and organizing your book collection. 
+#shelfmark is a self-hosted application for managing and organizing your book collection.
   shelfmark:
     image: ghcr.io/calibrain/shelfmark:latest
     container_name: shelfmark

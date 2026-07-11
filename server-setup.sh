@@ -125,9 +125,6 @@ echo "  2. Docker & Docker Compose"
 echo "  3. Dockhand (Docker Management UI)"
 echo "  4. Samba (SMB Network Share)"
 echo ""
-echo "Stack files are not downloaded by this script."
-echo "Use install-stacks.sh for hermesstacks/mediastacks and hermes-after-launch.sh for hermesconfig."
-echo ""
 
 # ====================================================================
 # STEP 1: SYSTEM UPDATE AND TIMEZONE CONFIGURATION
