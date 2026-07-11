@@ -3,10 +3,9 @@
 # Combined Server Setup Script
 # Automates Ubuntu server configuration with:
 #   - Docker & Dockhand setup (Container management)
-#   - Downloads stack folders from GitHub
 #   - SMB network share (Samba)
 # Author: Joseph M. Cooley
-# Usage: sudo bash hermes-setup.sh
+# Usage: sudo bash server-setup.sh
 ################################################################################
 
 set -e
@@ -88,46 +87,6 @@ PRIMARY_IP=$(hostname -I | awk '{print $1}')
 print_success "Primary IP: $PRIMARY_IP"
 
 # ====================================================================
-# SELECT STACK FAMILY
-# ====================================================================
-
-print_section "STACK FAMILY SELECTION"
-
-while true; do
-    echo "Choose which stack folder to download in step 3:"
-    echo "  1) Hermes stacks"
-    echo "  2) Media stacks"
-    echo "  3) Both Hermes and Media stacks"
-    read -rp "Enter choice [1-3]: " STACK_CHOICE
-
-    case "$STACK_CHOICE" in
-        1)
-            STACK_SOURCE_LABEL="Hermes stacks"
-            DOWNLOAD_SOURCE_DIRS=("hermesstacks")
-            INCLUDE_HERMES_CONFIG=true
-            break
-            ;;
-        2)
-            STACK_SOURCE_LABEL="Media stacks"
-            DOWNLOAD_SOURCE_DIRS=("mediastacks")
-            INCLUDE_HERMES_CONFIG=false
-            break
-            ;;
-        3)
-            STACK_SOURCE_LABEL="Hermes + Media stacks"
-            DOWNLOAD_SOURCE_DIRS=("hermesstacks" "mediastacks")
-            INCLUDE_HERMES_CONFIG=true
-            break
-            ;;
-        *)
-            print_error "Invalid choice. Enter 1, 2, or 3."
-            ;;
-    esac
-done
-
-print_success "Selected: ${STACK_SOURCE_LABEL}"
-
-# ====================================================================
 # PROMPT FOR SAMBA PASSWORD (if not set in configuration)
 # ====================================================================
 
@@ -163,9 +122,11 @@ echo ""
 echo "This script will set up:"
 echo "  1. System updates"
 echo "  2. Docker & Docker Compose"
-echo "  3. ${STACK_SOURCE_LABEL} (from GitHub)"
-echo "  4. Dockhand (Docker Management UI)"
-echo "  5. Samba (SMB Network Share)"
+echo "  3. Dockhand (Docker Management UI)"
+echo "  4. Samba (SMB Network Share)"
+echo ""
+echo "Stack files are not downloaded by this script."
+echo "Use install-stacks.sh for hermesstacks/mediastacks and hermes-after-launch.sh for hermesconfig."
 echo ""
 
 # ====================================================================
@@ -221,107 +182,10 @@ else
 fi
 
 # ====================================================================
-# STEP 3: DOWNLOAD SELECTED STACKS FROM GITHUB
+# STEP 3: DOCKHAND SETUP
 # ====================================================================
 
-print_section "STEP 3: DOWNLOAD ${STACK_SOURCE_LABEL} FROM GITHUB"
-
-REPO="josephcooley/server-setup"
-BRANCH="main"
-STACKS_RAW_BASE="https://raw.githubusercontent.com/${REPO}/${BRANCH}"
-GITHUB_API="https://api.github.com/repos/${REPO}/git/trees/${BRANCH}?recursive=1"
-HERMES_SOURCE_PREFIX="hermesconfig/"
-HERMES_AGENT_DIR="${STACKS_DIR}/hermes/agent"
-
-print_subsection "Fetching file list from GitHub API"
-API_RESPONSE=$(curl -fsSL "$GITHUB_API")
-if [[ -z "$API_RESPONSE" ]]; then
-    print_error "Failed to reach GitHub API"
-    exit 1
-fi
-
-HERMES_FILES=$(echo "$API_RESPONSE" | awk -v prefix="$HERMES_SOURCE_PREFIX" '
-    $0 ~ "\"path\"[[:space:]]*:[[:space:]]*\"" prefix {
-        path=$0
-        sub(/^.*"path"[[:space:]]*:[[:space:]]*"/, "", path)
-        sub(/".*$/, "", path)
-    }
-    /"type"[[:space:]]*:[[:space:]]*"blob"/ && path ~ ("^" prefix) {
-        print path
-        path=""
-    }
-')
-
-download_file() {
-    local rel_path="$1"
-    local dest_path="$2"
-
-    if [[ -e "$dest_path" ]]; then
-        print_info "Skipping existing file: ${rel_path}"
-        return 0
-    fi
-
-    mkdir -p "$(dirname "$dest_path")"
-    if curl -fsSL "${STACKS_RAW_BASE}/${rel_path}" -o "$dest_path"; then
-        print_success "Downloaded: ${rel_path}"
-    else
-        print_warning "Failed to download: ${rel_path}"
-    fi
-}
-
-download_stack_folder() {
-    local source_dir="$1"
-    local source_prefix="${source_dir}/"
-
-    # Extract only blob paths under the selected source folder so directories are not treated as downloads.
-    local stack_files
-    stack_files=$(echo "$API_RESPONSE" | awk -v prefix="$source_prefix" '
-        $0 ~ "\"path\"[[:space:]]*:[[:space:]]*\"" prefix {
-            path=$0
-            sub(/^.*"path"[[:space:]]*:[[:space:]]*"/, "", path)
-            sub(/".*$/, "", path)
-        }
-        /"type"[[:space:]]*:[[:space:]]*"blob"/ && path ~ ("^" prefix) {
-            print path
-            path=""
-        }
-    ')
-
-    if [[ -z "$stack_files" ]]; then
-        print_warning "No files found under ${source_dir}/ in the repository"
-        return 0
-    fi
-
-    print_subsection "Downloading ${source_dir} into $STACKS_DIR"
-    while IFS= read -r FULL_PATH; do
-        REL_PATH="${FULL_PATH#${source_prefix}}"
-        DEST="$STACKS_DIR/$REL_PATH"
-        download_file "$FULL_PATH" "$DEST"
-    done <<< "$stack_files"
-}
-
-for SOURCE_DIR in "${DOWNLOAD_SOURCE_DIRS[@]}"; do
-    download_stack_folder "$SOURCE_DIR"
-done
-
-if [[ "$INCLUDE_HERMES_CONFIG" == "true" ]]; then
-    if [[ -z "$HERMES_FILES" ]]; then
-        print_warning "No files found under hermesconfig/ in the repository"
-    else
-        print_subsection "Downloading hermesconfig folder into ${HERMES_AGENT_DIR}"
-        while IFS= read -r FULL_PATH; do
-            REL_PATH="${FULL_PATH#${HERMES_SOURCE_PREFIX}}"
-            DEST="${HERMES_AGENT_DIR}/${REL_PATH}"
-            download_file "$FULL_PATH" "$DEST"
-        done <<< "$HERMES_FILES"
-    fi
-fi
-
-# ====================================================================
-# STEP 4: DOCKHAND SETUP
-# ====================================================================
-
-print_section "STEP 4: DOCKHAND SETUP"
+print_section "STEP 3: DOCKHAND SETUP"
 
 print_subsection "Creating Dockhand directories"
 mkdir -p "$STACKS_DIR"
@@ -369,10 +233,10 @@ else
 fi
 
 # ====================================================================
-# STEP 5: SAMBA/SMB SETUP
+# STEP 4: SAMBA/SMB SETUP
 # ====================================================================
 
-print_section "STEP 5: SAMBA/SMB NETWORK SHARE SETUP"
+print_section "STEP 4: SAMBA/SMB NETWORK SHARE SETUP"
 
 print_subsection "Installing Samba packages"
 apt install samba samba-common-bin -y
@@ -539,14 +403,20 @@ echo "  ✓ Samba (SMB Network Share - Authenticated)"
 echo ""
 echo -e "${YELLOW}Next Steps:${NC}"
 echo ""
-echo "1. Access Dockhand:"
+echo "1. Download stack files:"
+echo "   sudo bash install-stacks.sh"
+echo ""
+echo "2. Download Hermes config:"
+echo "   sudo bash hermes-after-launch.sh"
+echo ""
+echo "3. Access Dockhand:"
 echo "   Open http://${PRIMARY_IP}:${DOCKHAND_PORT} in your browser"
 echo ""
-echo "2. Mount SMB share on Windows:"
+echo "4. Mount SMB share on Windows:"
 echo "   \\\\${PRIMARY_IP}\\${SHARE_NAME}"
 echo "   (When prompted, use username: ${SAMBA_USERNAME})"
 echo ""
-echo "3. Mount SMB share on Linux/Mac:"
+echo "5. Mount SMB share on Linux/Mac:"
 echo "   sudo mount -t cifs //${PRIMARY_IP}/${SHARE_NAME} /mnt/${SHARE_NAME} -o username=${SAMBA_USERNAME},password=<your_password>"
 echo ""
 echo -e "${BLUE}========================================${NC}"

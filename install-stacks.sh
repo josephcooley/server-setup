@@ -28,6 +28,10 @@ print_section() {
     echo ""
 }
 
+print_subsection() {
+    echo -e "${BLUE}→ $1${NC}"
+}
+
 print_success() {
     echo -e "${GREEN}✓ $1${NC}"
 }
@@ -95,8 +99,37 @@ choose_sources() {
     done
 }
 
+choose_file_behavior() {
+    local choice
+
+    print_section "FILE HANDLING"
+    echo "Choose how to handle files that already exist in ${DEST_DIR}:"
+    echo "  1) Only download new files (skip existing)"
+    echo "  2) Overwrite existing files"
+    echo ""
+
+    while true; do
+        read -r -p "Enter selection [1-2]: " choice
+        case "$choice" in
+            1)
+                OVERWRITE_EXISTING=false
+                print_info "Mode selected: only download new files"
+                return 0
+                ;;
+            2)
+                OVERWRITE_EXISTING=true
+                print_info "Mode selected: overwrite existing files"
+                return 0
+                ;;
+            *)
+                print_warning "Invalid choice. Enter 1 or 2."
+                ;;
+        esac
+    done
+}
+
 fetch_file_list() {
-    print_info "Fetching file list from GitHub"
+    print_subsection "Fetching file list from GitHub API"
     API_RESPONSE=$(curl -fsSL "$TREE_API")
     if [[ -z "$API_RESPONSE" ]]; then
         print_error "Failed to reach GitHub API"
@@ -119,6 +152,31 @@ list_source_files() {
     '
 }
 
+download_repo_subtree() {
+    local source_dir="$1"
+    local destination_root="$2"
+    local source_files
+    local full_path
+    local rel_path
+    local dest_path
+
+    print_section "DOWNLOAD ${source_dir^^} FROM GITHUB"
+    print_subsection "Downloading ${source_dir} into ${destination_root}"
+
+    source_files=$(list_source_files "$source_dir")
+
+    if [[ -z "$source_files" ]]; then
+        print_warning "No files found under ${source_dir}/ in the repository"
+        return 0
+    fi
+
+    while IFS= read -r full_path; do
+        rel_path="${full_path#${source_dir}/}"
+        dest_path="${destination_root}/${rel_path}"
+        download_file "$source_dir" "$rel_path" "$dest_path"
+    done <<< "$source_files"
+}
+
 download_file() {
     local source_dir="$1"
     local rel_path="$2"
@@ -133,8 +191,12 @@ PY
 )
 
     if [[ -e "$dest_path" ]]; then
-        print_info "Skipping existing file: ${source_dir}/${rel_path}"
-        return 0
+        if [[ "${OVERWRITE_EXISTING:-false}" != "true" ]]; then
+            print_info "Skipping existing file: ${source_dir}/${rel_path}"
+            return 0
+        fi
+
+        print_info "Overwriting existing file: ${source_dir}/${rel_path}"
     fi
 
     mkdir -p "$(dirname "$dest_path")"
@@ -147,27 +209,7 @@ PY
 
 download_source() {
     local source_dir="$1"
-    local source_files
-    local full_path
-    local rel_path
-    local dest_path
-
-    print_section "DOWNLOAD ${source_dir^^}"
-    print_info "Source: ${source_dir}"
-    print_info "Destination: ${DEST_DIR}"
-
-    source_files=$(list_source_files "$source_dir")
-
-    if [[ -z "$source_files" ]]; then
-        print_warning "No files found under ${source_dir}/ in the repository"
-        return 0
-    fi
-
-    while IFS= read -r full_path; do
-        rel_path="${full_path#${source_dir}/}"
-        dest_path="${DEST_DIR}/${rel_path}"
-        download_file "$source_dir" "$rel_path" "$dest_path"
-    done <<< "$source_files"
+    download_repo_subtree "$source_dir" "$DEST_DIR"
 }
 
 main() {
@@ -176,6 +218,7 @@ main() {
     mkdir -p "$DEST_DIR"
 
     choose_sources
+    choose_file_behavior
     fetch_file_list
 
     for source in "${SELECTED_SOURCES[@]}"; do

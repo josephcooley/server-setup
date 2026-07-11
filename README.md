@@ -2,14 +2,16 @@
 
 Scripts for setting up an Ubuntu server with Docker container management, a Samba share, Hermes configuration, and NFS mounts.
 
-## `hermes-setup.sh` - Hermes Server Setup
+## `server-setup.sh` - Hermes Server Setup
 
-This script will install Docker, downloads your selected stack set (`hermesstacks/` or `mediastacks/`) into `/opt/stacks/`, starts Dockge, configures the Samba share used by Hermes at `/opt/stacks/hermes/workspace`, creates the Samba user, and writes the Samba share configuration for Hermes-related access.
+This script installs Docker, starts Dockhand, configures the Samba share used by Hermes at `/opt/stacks/hermes/workspace`, creates the Samba user, and writes the Samba share configuration for Hermes-related access.
+
+It does not download stack files. Use `install-stacks.sh` for stack folder downloads and `hermes-after-launch.sh` for `hermesconfig/` sync.
 
 ### Usage
 
 ```bash
-curl -O https://raw.githubusercontent.com/josephcooley/server-setup/main/hermes-setup.sh && chmod +x hermes-setup.sh && sudo hermes-setup.sh
+curl -O https://raw.githubusercontent.com/josephcooley/server-setup/main/server-setup.sh && chmod +x server-setup.sh && sudo server-setup.sh
 ```
 
 ## `post-startup.sh` - Post-Install / Post-Start Tasks
@@ -17,9 +19,7 @@ curl -O https://raw.githubusercontent.com/josephcooley/server-setup/main/hermes-
 Run this script after your Docker Compose stacks are started. It currently includes:
 
 - Step 1: Hermes dashboard setup (prompts for password, generates hash in container, updates `/opt/stacks/hermes/agent/config.yaml`)
-- Step 2: Generates and populates secrets in stack `.env` files:
-	- `manifest` -> `BETTER_AUTH_SECRET`
-	- `sure` -> `SECRET_KEY_BASE`
+- Step 2: Downloads `hermesconfig/` files into `/opt/stacks/hermes/agent/` (skips existing files)
 
 ### Usage
 
@@ -39,15 +39,14 @@ curl -O https://raw.githubusercontent.com/josephcooley/server-setup/main/uipassw
 
 ## Configuration
 
-Edit the configuration block at the top of `hermes-setup.sh` before running if you want to change any defaults:
+Edit the configuration block at the top of `server-setup.sh` before running if you want to change any defaults:
 
 - `SHARE_DIR`: Samba share path, default `/opt/stacks/hermes/workspace`
 - `SHARE_NAME`: SMB share name, default `workspace`
-- `SAMBA_USERNAME`: Samba login name, default `joseph`
+- `SAMBA_PASSWORD`: If blank, you will be prompted
 - `SMB_HOSTS_ALLOW`: Allowed LAN ranges for SMB access
-- `DOCKGE_PORT`: Dockge port, default `5001`
-- `DOCKGE_DIR`: Dockge install path, default `/opt/dockge`
-- `STACKS_DIR`: Dockge stacks path, default `/opt/stacks`
+- `DOCKHAND_PORT`: Dockhand port, default `3099`
+- `STACKS_DIR`: Stacks path, default `/opt/stacks`
 
 ## `install-stacks.sh` - Stack Downloader
 
@@ -67,6 +66,25 @@ When run, it prompts you to choose:
 
 Existing destination files are skipped by default.
 
+## `hermes-after-launch.sh` - Hermes Config Downloader
+
+This script downloads `hermesconfig/` into `/opt/stacks/hermes/agent/`.
+
+### Usage
+
+```bash
+curl -O https://raw.githubusercontent.com/josephcooley/server-setup/main/hermes-after-launch.sh && chmod +x hermes-after-launch.sh && sudo ./hermes-after-launch.sh
+```
+
+Existing destination files are skipped by default.
+
+## Recommended Run Order
+
+1. Run `server-setup.sh` to install Docker, Dockhand, and Samba.
+2. Run `install-stacks.sh` to download stack files into `/opt/stacks/`.
+3. Run `hermes-after-launch.sh` to download `hermesconfig/` into `/opt/stacks/hermes/agent/`.
+4. Start the stacks from Dockhand or with `docker compose` in each stack directory.
+
 
 ## `mounts.sh` - NFS Mounts Only
 
@@ -84,20 +102,22 @@ curl -O https://raw.githubusercontent.com/josephcooley/server-setup/main/mounts.
 | --- | --- |
 | Docker CE | Container runtime |
 | Docker Compose plugin | Multi-container orchestration |
-| Dockge | Web UI for Docker management |
+| Dockhand | Web UI for Docker management |
 | Samba | Windows-compatible file sharing |
 | Hermes-related Samba setup | Samba share and user configuration for Hermes |
+| Stack downloader (`install-stacks.sh`) | Downloads `hermesstacks/` and/or `mediastacks/` |
+| Hermes config downloader (`hermes-after-launch.sh`) | Downloads `hermesconfig/` into `/opt/stacks/hermes/agent/` |
 | NFS client | Mount support for `mounts.sh` |
 
 ## Troubleshooting
 
-### Dockge
+### Dockhand
 
 Check the container and logs:
 
 ```bash
 docker ps
-docker logs dockge
+docker logs dockhand
 ```
 
 ### Samba
@@ -111,7 +131,7 @@ systemctl status smbd
 
 ### Hermes Setup
 
-If you change the Hermes Samba credentials or share path, update `hermes-setup.sh` before rerunning it.
+If you change the Hermes Samba credentials or share path, update `server-setup.sh` before rerunning it.
 
 ## Requirements
 
@@ -124,4 +144,4 @@ If you change the Hermes Samba credentials or share path, update `hermes-setup.s
 
 Joseph M. Cooley
 
-**Last Updated:** June 2026
+**Last Updated:** July 2026
