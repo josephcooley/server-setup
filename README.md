@@ -11,7 +11,7 @@ It does not download stack files. Use `install-stacks.sh` and `post-stacks-up.sh
 ### Usage
 
 ```bash
-curl -O https://raw.githubusercontent.com/josephcooley/server-setup/main/server-setup.sh && chmod +x server-setup.sh && sudo server-setup.sh
+curl -O https://raw.githubusercontent.com/josephcooley/server-setup/main/server-setup.sh && chmod +x server-setup.sh && sudo ./server-setup.sh
 ```
 
 ## `install-stacks.sh` - Stack Bootstrap Downloader
