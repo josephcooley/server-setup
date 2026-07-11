@@ -7,9 +7,9 @@
 # - Generates password hash inside the running hermes-agent container
 # - Prepends dashboard block to /opt/stacks/hermes/agent/config.yaml
 #
-# Step 2: Download hermesconfig files into /opt/stacks/hermes/agent
-# - Pulls files from this repository's hermesconfig/ folder
-# - Skips existing destination files
+# Step 2: Download non-.env and non-compose.yaml stack files
+# - Prompts for hermesstacks, mediastacks, or both
+# - Downloads all other files into /opt/stacks and always overwrites existing files
 ################################################################################
 
 set -euo pipefail
@@ -19,8 +19,7 @@ CONTAINER_NAME="hermes-agent"
 DASHBOARD_USERNAME="joseph"
 REPO="josephcooley/server-setup"
 BRANCH="main"
-HERMES_CONFIG_SOURCE_DIR="hermesconfig"
-HERMES_CONFIG_DEST_DIR="/opt/stacks/hermes/agent"
+STACKS_DEST_DIR="/opt/stacks"
 TREE_API="https://api.github.com/repos/${REPO}/git/trees/${BRANCH}?recursive=1"
 RAW_BASE="https://raw.githubusercontent.com/${REPO}/${BRANCH}"
 
@@ -40,6 +39,10 @@ print_section() {
 
 print_success() {
 	echo -e "${GREEN}✓ $1${NC}"
+}
+
+print_info() {
+	echo -e "${GREEN}[INFO]${NC}  $1"
 }
 
 print_warning() {
@@ -92,8 +95,41 @@ print_subsection() {
 	echo -e "${BLUE}→ $1${NC}"
 }
 
-list_hermes_config_files() {
-	echo "$API_RESPONSE" | awk -v source_dir="$HERMES_CONFIG_SOURCE_DIR" '
+choose_stack_sources() {
+	local choice
+
+	print_section "STEP 2: Stack File Selection"
+	echo "Choose which stack folder(s) to sync into ${STACKS_DEST_DIR}:"
+	echo "  1) hermesstacks"
+	echo "  2) mediastacks"
+	echo "  3) both"
+	echo ""
+
+	while true; do
+		read -r -p "Enter selection [1-3]: " choice
+		case "$choice" in
+			1)
+				SELECTED_SOURCES=("hermesstacks")
+				return 0
+				;;
+			2)
+				SELECTED_SOURCES=("mediastacks")
+				return 0
+				;;
+			3)
+				SELECTED_SOURCES=("hermesstacks" "mediastacks")
+				return 0
+				;;
+			*)
+				print_warning "Invalid choice. Enter 1, 2, or 3."
+				;;
+		esac
+	done
+}
+
+list_source_files() {
+	local source_dir="$1"
+	echo "$API_RESPONSE" | awk -v source_dir="$source_dir" '
 		$0 ~ "\"path\"[[:space:]]*:[[:space:]]*\"" source_dir "/" {
 			path=$0
 			sub(/^.*"path"[[:space:]]*:[[:space:]]*"/, "", path)
@@ -106,9 +142,23 @@ list_hermes_config_files() {
 	'
 }
 
-download_hermes_config_file() {
+is_overlay_target_file() {
 	local rel_path="$1"
-	local dest_path="$2"
+
+	case "$rel_path" in
+		compose.yaml|*/compose.yaml|.env|*/.env)
+			return 1
+			;;
+		*)
+			return 0
+			;;
+	esac
+}
+
+download_overlay_file() {
+	local source_dir="$1"
+	local rel_path="$2"
+	local dest_path="$3"
 	local encoded_path
 
 	encoded_path=$(python3 - "$rel_path" <<'PY'
@@ -119,42 +169,55 @@ PY
 )
 
 	if [[ -e "$dest_path" ]]; then
-		print_warning "Skipping existing file: ${HERMES_CONFIG_SOURCE_DIR}/${rel_path}"
-		return 0
+		print_info "Overwriting existing file: ${source_dir}/${rel_path}"
 	fi
 
 	mkdir -p "$(dirname "$dest_path")"
-	if curl -fsSL "${RAW_BASE}/${HERMES_CONFIG_SOURCE_DIR}/${encoded_path}" -o "$dest_path"; then
-		print_success "Downloaded: ${HERMES_CONFIG_SOURCE_DIR}/${rel_path}"
+	if curl -fsSL "${RAW_BASE}/${source_dir}/${encoded_path}" -o "$dest_path"; then
+		print_success "Downloaded: ${source_dir}/${rel_path}"
 	else
-		print_warning "Failed to download: ${HERMES_CONFIG_SOURCE_DIR}/${rel_path}"
+		print_warning "Failed to download: ${source_dir}/${rel_path}"
 	fi
 }
 
-step_2_download_hermes_config() {
+step_2_download_stack_overlays() {
+	local source_dir
 	local source_files
 	local full_path
 	local rel_path
 	local dest_path
+	local downloaded_any=false
 
-	print_section "STEP 2: Download Hermes Config"
-	print_subsection "Source: ${HERMES_CONFIG_SOURCE_DIR}"
-	print_subsection "Destination: ${HERMES_CONFIG_DEST_DIR}"
-
-	mkdir -p "$HERMES_CONFIG_DEST_DIR"
+	choose_stack_sources
 	fetch_repo_file_list
-	source_files=$(list_hermes_config_files)
 
-	if [[ -z "$source_files" ]]; then
-		print_warning "No files found under ${HERMES_CONFIG_SOURCE_DIR}/ in the repository"
-		return 0
+	for source_dir in "${SELECTED_SOURCES[@]}"; do
+		print_section "STEP 2: Sync Non-.env/Non-compose Files (${source_dir})"
+		print_subsection "Source: ${source_dir}"
+		print_subsection "Destination: ${STACKS_DEST_DIR}"
+
+		source_files=$(list_source_files "$source_dir")
+		if [[ -z "$source_files" ]]; then
+			print_warning "No files found under ${source_dir}/ in the repository"
+			continue
+		fi
+
+		while IFS= read -r full_path; do
+			rel_path="${full_path#${source_dir}/}"
+
+			if ! is_overlay_target_file "$rel_path"; then
+				continue
+			fi
+
+			dest_path="${STACKS_DEST_DIR}/${rel_path}"
+			download_overlay_file "$source_dir" "$rel_path" "$dest_path"
+			downloaded_any=true
+		done <<< "$source_files"
+	done
+
+	if [[ "$downloaded_any" != "true" ]]; then
+		print_warning "No non-.env/non-compose.yaml files matched for selected source(s)"
 	fi
-
-	while IFS= read -r full_path; do
-		rel_path="${full_path#${HERMES_CONFIG_SOURCE_DIR}/}"
-		dest_path="${HERMES_CONFIG_DEST_DIR}/${rel_path}"
-		download_hermes_config_file "$rel_path" "$dest_path"
-	done <<< "$source_files"
 }
 
 ensure_container_running() {
@@ -251,7 +314,7 @@ main() {
 	require_tools
 
 	step_1_setup_hermes_dashboard
-	step_2_download_hermes_config
+	step_2_download_stack_overlays
 
 	print_section "COMPLETE"
 	print_success "Step 1 and Step 2 finished"

@@ -1,7 +1,8 @@
 #!/bin/bash
 ################################################################################
 # Standalone downloader for stack folders in this repository
-# Downloads selected files from hermesstacks/ and/or mediastacks/ into /opt/stacks
+# Downloads only compose.yaml and .env files from hermesstacks/ and/or mediastacks/
+# into /opt/stacks
 # Hermes stacks include the Dockhand compose file under hermesstacks/dockhand/.
 #
 # Usage: sudo bash install-stacks.sh
@@ -152,6 +153,19 @@ list_source_files() {
     '
 }
 
+is_target_file() {
+    local rel_path="$1"
+
+    case "$rel_path" in
+        compose.yaml|*/compose.yaml|.env|*/.env)
+            return 0
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
 download_repo_subtree() {
     local source_dir="$1"
     local destination_root="$2"
@@ -172,6 +186,11 @@ download_repo_subtree() {
 
     while IFS= read -r full_path; do
         rel_path="${full_path#${source_dir}/}"
+
+        if ! is_target_file "$rel_path"; then
+            continue
+        fi
+
         dest_path="${destination_root}/${rel_path}"
         download_file "$source_dir" "$rel_path" "$dest_path"
     done <<< "$source_files"
