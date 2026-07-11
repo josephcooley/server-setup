@@ -9,6 +9,9 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - dockhand_data:/app/data
       - /opt/stacks:/stacks
+    environment:
+      - DATA_DIR=/opt/stacks 
+      
 volumes:
   dockhand_data: null
 networks: {}
