@@ -22,7 +22,7 @@ SMB_HOSTS_ALLOW="192.168.1.0/24 127.0.0.1"
 SAMBA_PASSWORD=""  # Leave empty to be prompted at startup
 
 # Dockge Configuration
-DOCKGE_PORT="3099"
+DOCKGE_PORT="5001"
 STACKS_DIR="/opt/stacks"
 
 # Prefer the invoking user for Hermes config when running via sudo.
