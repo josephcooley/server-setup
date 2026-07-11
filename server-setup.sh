@@ -2,7 +2,7 @@
 ################################################################################
 # Combined Server Setup Script
 # Automates Ubuntu server configuration with:
-#   - Docker & Dockhand setup (Container management)
+#   - Docker & Dockge setup (Container management)
 #   - SMB network share (Samba)
 # Author: Joseph M. Cooley
 # Usage: sudo bash server-setup.sh
@@ -21,8 +21,8 @@ SMB_WORKGROUP="WORKGROUP"
 SMB_HOSTS_ALLOW="192.168.1.0/24 127.0.0.1"
 SAMBA_PASSWORD=""  # Leave empty to be prompted at startup
 
-# Dockhand Configuration
-DOCKHAND_PORT="3099"
+# Dockge Configuration
+DOCKGE_PORT="3099"
 STACKS_DIR="/opt/stacks"
 
 # Prefer the invoking user for Hermes config when running via sudo.
@@ -122,7 +122,7 @@ echo ""
 echo "This script will set up:"
 echo "  1. System updates"
 echo "  2. Docker & Docker Compose"
-echo "  3. Dockhand (Docker Management UI)"
+echo "  3. Dockge (Docker Management UI)"
 echo "  4. Samba (SMB Network Share)"
 echo ""
 
@@ -179,54 +179,53 @@ else
 fi
 
 # ====================================================================
-# STEP 3: DOCKHAND SETUP
+# STEP 3: DOCKGE SETUP
 # ====================================================================
 
-print_section "STEP 3: DOCKHAND SETUP"
+print_section "STEP 3: DOCKGE SETUP"
 
-print_subsection "Creating Dockhand directories"
+print_subsection "Creating Dockge directories"
 mkdir -p "$STACKS_DIR"
-mkdir -p "$STACKS_DIR/dockhand"
-chown -R "$TARGET_USER:$TARGET_GROUP" "$STACKS_DIR/dockhand"
-print_success "Directories created: $STACKS_DIR/dockhand, $STACKS_DIR"
+mkdir -p "$STACKS_DIR/dockge"
+chown -R "$TARGET_USER:$TARGET_GROUP" "$STACKS_DIR/dockge"
+print_success "Directories created: $STACKS_DIR/dockge, $STACKS_DIR"
 
-print_subsection "Creating compose.yaml for Dockhand"
-cat > "$STACKS_DIR/dockhand/compose.yaml" << EOF
+print_subsection "Creating compose.yaml for Dockge"
+cat > "$STACKS_DIR/dockge/compose.yaml" << EOF
 services:
-  dockhand:
-    image: fnsys/dockhand:latest
-    container_name: dockhand
-    restart: unless-stopped
-    ports:
-      - 3099:3000
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - dockhand_data:/app/data
-      - /opt/stacks:/stacks
-volumes:
-  dockhand_data: null
-networks: {}
+    dockge:
+        image: louislam/dockge:latest
+        container_name: dockge
+        ports:
+            - "${DOCKGE_PORT}:5001"
+        volumes:
+            - /var/run/docker.sock:/var/run/docker.sock
+            - ${STACKS_DIR}:/app/data/stacks
+        restart: unless-stopped
+        environment:
+            - DOCKGE_STACKS_DIR=/app/data/stacks
+            - DOCKGE_ENABLE_CONSOLE=true
 EOF
 
-print_success "Dockhand compose.yaml created"
+print_success "Dockge compose.yaml created"
 
-print_subsection "Starting Dockhand container"
-cd "$STACKS_DIR/dockhand"
-chown -R "$TARGET_USER:$TARGET_GROUP" "$STACKS_DIR/dockhand"
+print_subsection "Starting Dockge container"
+cd "$STACKS_DIR/dockge"
+chown -R "$TARGET_USER:$TARGET_GROUP" "$STACKS_DIR/dockge"
 docker compose up -d
 
-# Wait until the Dockhand container appears in docker ps instead of using a fixed delay.
+# Wait until the Dockge container appears in docker ps instead of using a fixed delay.
 for _ in {1..20}; do
-    if docker ps --format '{{.Names}}' | grep -qx "dockhand"; then
+    if docker ps --format '{{.Names}}' | grep -qx "dockge"; then
         break
     fi
     sleep 1
 done
 
-if docker ps | grep -q dockhand; then
-    print_success "Dockhand container is running"
+if docker ps | grep -q dockge; then
+    print_success "Dockge container is running"
 else
-    print_warning "Dockhand container status could not be verified"
+    print_warning "Dockge container status could not be verified"
 fi
 
 # ====================================================================
@@ -385,7 +384,7 @@ print_section "SETUP COMPLETE"
 echo -e "${GREEN}All components installed and configured!${NC}"
 echo ""
 echo -e "${YELLOW}Access Points:${NC}"
-echo "  • Dockhand:     http://${PRIMARY_IP}:${DOCKHAND_PORT}"
+echo "  • Dockge:       http://${PRIMARY_IP}:${DOCKGE_PORT}"
 echo "  • SMB Share:    \\\\${PRIMARY_IP}\\${SHARE_NAME}"
 echo "  • Share Path:   ${SHARE_DIR}"
 echo ""
@@ -395,7 +394,7 @@ echo "  • Password:     (as configured during setup)"
 echo ""
 echo -e "${YELLOW}Installed Services:${NC}"
 echo "  ✓ Docker & Docker Compose"
-echo "  ✓ Dockhand (Docker Management UI)"
+echo "  ✓ Dockge (Docker Management UI)"
 echo "  ✓ Samba (SMB Network Share - Authenticated)"
 echo ""
 echo -e "${YELLOW}Next Steps:${NC}"
@@ -406,8 +405,8 @@ echo ""
 echo "2. Download Hermes config:"
 echo "   sudo bash hermes-after-launch.sh"
 echo ""
-echo "3. Access Dockhand:"
-echo "   Open http://${PRIMARY_IP}:${DOCKHAND_PORT} in your browser"
+echo "3. Access Dockge:"
+echo "   Open http://${PRIMARY_IP}:${DOCKGE_PORT} in your browser"
 echo ""
 echo "4. Mount SMB share on Windows:"
 echo "   \\\\${PRIMARY_IP}\\${SHARE_NAME}"
