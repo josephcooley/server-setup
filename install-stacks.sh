@@ -3,7 +3,6 @@
 # Standalone downloader for stack folders in this repository
 # Downloads only compose.yaml and .env files from hermesstacks/ and/or mediastacks/
 # into /opt/stacks
-# Hermes stacks include the Dockhand compose file under hermesstacks/dockhand/.
 #
 # Usage: sudo bash install-stacks.sh
 ################################################################################
@@ -73,7 +72,7 @@ choose_sources() {
 
     print_section "STACK SELECTION"
     echo "Choose which stack folder(s) to download into ${DEST_DIR}:"
-    echo "  1) hermesstacks (includes Dockhand)"
+    echo "  1) hermesstacks"
     echo "  2) mediastacks"
     echo "  3) both"
     echo ""
