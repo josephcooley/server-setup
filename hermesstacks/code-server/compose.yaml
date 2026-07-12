@@ -14,7 +14,7 @@ services:
       - DEFAULT_WORKSPACE=/config/workspace #optional
       - PWA_APPNAME=code-server #optional
     volumes:
-      - ./config:/config
+      - /opt/stacks/code-server:/config
       - /opt/stacks:/stacks
     ports:
       - 8443:8443

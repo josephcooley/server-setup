@@ -9,7 +9,7 @@ services:
     ports:
       - "20128:20128"
     volumes:
-      - omniroute-data:/app/data
+      - /opt/stacks/hermes/data:/app/data
     env_file:
       - .env
     environment:

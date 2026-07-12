@@ -17,9 +17,9 @@ services:
       - 8085:8080 # Web UI and API port
     volumes:
       # Mount directory containing your model files
-      - ./models:/models
+      - /opt/llama/models:/models
       # Optional: persist any generation outputs
-      - ./outputs:/outputs
+      - /opt/llama/outputs:/outputs
     # Environment variables for CPU optimization
     environment:
       # CPU threading - i5-8500T has 6 cores

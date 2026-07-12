@@ -20,7 +20,7 @@ services:
       - 127.0.0.1:8642:8642
       - 9119:9119
     volumes:
-      - ./agent:/home/hermes/.hermes
+      - /opt/stacks/hermes/agent:/home/hermes/.hermes
       - hermes-agent-src:/opt/hermes
       - /opt/stacks:/opt/stacks
       - hermes-data:/opt/data
@@ -42,9 +42,9 @@ services:
     ports:
       - 8787:8787
     volumes:
-      - ./webui:/home/hermeswebui/.hermes
+      - /opt/stacks/hermes/webui:/home/hermeswebui/.hermes
       - hermes-agent-src:/home/hermeswebui/.hermes/hermes-agent:ro
-      - ./agent/workspace:/workspace
+      - /opt/stacks/hermes/agent/workspace:/workspace
     environment:
       - HERMES_WEBUI_PASSWORD=${HERMES_PASS}
       - HERMES_WEBUI_HOST=0.0.0.0
