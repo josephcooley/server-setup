@@ -4,9 +4,9 @@ Scripts for setting up an Ubuntu server with Docker container management, a Samb
 
 ## `server-setup.sh` - Hermes Server Setup
 
-This script installs Docker, starts Dockhand, configures the Samba share used by Hermes at `/opt/stacks/hermes/workspace`, creates the Samba user, and writes the Samba share configuration for Hermes-related access.
+This script installs Docker, starts Dockge, configures the Samba share used by Hermes at `/opt/stacks/hermes/workspace`, creates the Samba user, and writes the Samba share configuration for Hermes-related access.
 
-It does not download stack files. Use `install-stacks.sh` and `post-stacks-up.sh` for stack content sync.
+It does not download stack files. Use `install-stacks.sh` for stack bootstrap files and `post-stacks-up.sh` for Hermes config tasks.
 
 ### Usage
 
@@ -36,7 +36,7 @@ curl -O https://raw.githubusercontent.com/josephcooley/server-setup/main/install
 Run this script after your Docker Compose stacks are started. It currently includes:
 
 - Step 1: Hermes dashboard setup (prompts for password, generates hash in container, updates `/opt/stacks/hermes/agent/config.yaml`)
-- Step 2: Downloads non-`.env` and non-`compose.yaml` files from selected stack folders (`hermesstacks`, `mediastacks`, or both) into `/opt/stacks/` and overwrites existing files
+- Step 2: Downloads files from the repo `hermesconfig/` folder into `/opt/stacks/hermes/` and overwrites existing files
 
 ### Usage
 
@@ -52,15 +52,15 @@ Edit the configuration block at the top of `server-setup.sh` before running if y
 - `SHARE_NAME`: SMB share name, default `workspace`
 - `SAMBA_PASSWORD`: If blank, you will be prompted
 - `SMB_HOSTS_ALLOW`: Allowed LAN ranges for SMB access
-- `DOCKHAND_PORT`: Dockhand port, default `3099`
+- `DOCKGE_PORT`: Dockge port, default `3099`
 - `STACKS_DIR`: Stacks path, default `/opt/stacks`
 
 ## Recommended Run Order
 
-1. Run `server-setup.sh` to install Docker, Dockhand, and Samba.
+1. Run `server-setup.sh` to install Docker, Dockge, and Samba.
 2. Run `install-stacks.sh` to pull `compose.yaml` and `.env` files into `/opt/stacks/`.
-3. Start the stacks from Dockhand or with `docker compose` in each stack directory.
-4. Run `post-stacks-up.sh` for Hermes dashboard auth setup and non-`.env`/non-`compose.yaml` file sync.
+3. Start the stacks from Dockge or with `docker compose` in each stack directory.
+4. Run `post-stacks-up.sh` for Hermes dashboard auth setup and `hermesconfig/` file download.
 
 
 ## `mounts.sh` - NFS Mounts Only
@@ -79,22 +79,22 @@ curl -O https://raw.githubusercontent.com/josephcooley/server-setup/main/mounts.
 | --- | --- |
 | Docker CE | Container runtime |
 | Docker Compose plugin | Multi-container orchestration |
-| Dockhand | Web UI for Docker management |
+| Dockge | Web UI for Docker management |
 | Samba | Windows-compatible file sharing |
 | Hermes-related Samba setup | Samba share and user configuration for Hermes |
 | Stack bootstrap (`install-stacks.sh`) | Downloads only `compose.yaml` and `.env` files from selected stack families |
-| Post-stacks sync (`post-stacks-up.sh`) | Sets Hermes dashboard auth and syncs non-`.env`/non-`compose.yaml` files with overwrite |
+| Post-stacks tasks (`post-stacks-up.sh`) | Sets Hermes dashboard auth and downloads repo `hermesconfig/` files into `/opt/stacks/hermes/` |
 | NFS client | Mount support for `mounts.sh` |
 
 ## Troubleshooting
 
-### Dockhand
+### Dockge
 
 Check the container and logs:
 
 ```bash
 docker ps
-docker logs dockhand
+docker logs dockge
 ```
 
 ### Samba
