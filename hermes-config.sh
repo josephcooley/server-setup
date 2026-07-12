@@ -215,11 +215,33 @@ generate_password_hash() {
 prepend_dashboard_block() {
 	local backup_file
 	local tmp_file
+	local stripped_file
+
+	stripped_file="$(mktemp)"
 
 	if grep -q '^dashboard:' "$CONFIG_FILE"; then
-		print_warning "A dashboard block already exists in $CONFIG_FILE"
-		print_warning "Skipping insertion to avoid duplicate config"
-		return 0
+		print_info "Existing dashboard block found; replacing it with new values"
+		awk '
+			BEGIN { skip = 0 }
+			{
+				if (skip == 0 && $0 ~ /^dashboard:[[:space:]]*$/) {
+					skip = 1
+					next
+				}
+
+				if (skip == 1) {
+					if ($0 ~ /^[^[:space:]#][^:]*:[[:space:]]*($|#.*$)/) {
+						skip = 0
+					} else {
+						next
+					}
+				}
+
+				print
+			}
+		' "$CONFIG_FILE" > "$stripped_file"
+	else
+		cp "$CONFIG_FILE" "$stripped_file"
 	fi
 
 	backup_file="${CONFIG_FILE}.bak.$(date +%Y%m%d%H%M%S)"
@@ -233,10 +255,11 @@ prepend_dashboard_block() {
 		printf '  basic_auth:\n'
 		printf '    username: %s\n' "$DASHBOARD_USERNAME"
 		printf '    password_hash: "%s"\n\n' "$PASS_HASH"
-		cat "$CONFIG_FILE"
+		cat "$stripped_file"
 	} > "$tmp_file"
 
 	mv "$tmp_file" "$CONFIG_FILE"
+	rm -f "$stripped_file"
 
 	print_success "Dashboard config inserted at top of $CONFIG_FILE"
 	print_success "Backup created: $backup_file"
