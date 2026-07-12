@@ -15,7 +15,7 @@
 set -euo pipefail
 
 CONFIG_FILE="/opt/stacks/hermes/agent/config.yaml"
-HERMES_DEST_DIR="/opt/stacks/hermes"
+HERMES_DEST_DIR="/opt/stacks/hermes/agent"
 CONTAINER_NAME="hermes-agent"
 DASHBOARD_USERNAME="joseph"
 REPO="josephcooley/server-setup"
@@ -88,18 +88,50 @@ print_subsection() {
 }
 
 fetch_hermesconfig_file_list() {
-	curl -fsSL "$TREE_API" | python3 - "$HERMESCONFIG_SOURCE_DIR" <<'PY'
+	local api_response
+	local file_list
+
+	if ! api_response=$(curl -fsSL -H "Accept: application/vnd.github+json" "$TREE_API"); then
+		print_error "Failed to fetch GitHub tree API: $TREE_API"
+		print_warning "Check internet access, repo/branch values, and GitHub availability"
+		exit 1
+	fi
+
+	if [[ -z "$api_response" ]]; then
+		print_error "GitHub API returned an empty response"
+		exit 1
+	fi
+
+	if ! file_list=$(python3 - "$HERMESCONFIG_SOURCE_DIR" <<'PY'
 import json
 import sys
 
 source_dir = sys.argv[1].rstrip('/') + '/'
-data = json.load(sys.stdin)
+raw = sys.stdin.read()
+
+try:
+    data = json.loads(raw)
+except json.JSONDecodeError:
+    print("GitHub API response was not valid JSON", file=sys.stderr)
+    sys.exit(2)
+
+if "tree" not in data:
+    msg = data.get("message", "GitHub API response missing 'tree' field")
+    print(msg, file=sys.stderr)
+    sys.exit(3)
 
 for node in data.get("tree", []):
     path = node.get("path", "")
     if node.get("type") == "blob" and path.startswith(source_dir):
         print(path)
 PY
+	<<< "$api_response"); then
+		print_error "Failed to parse GitHub tree response"
+		print_warning "The API may be rate-limited or returning an unexpected payload"
+		exit 1
+	fi
+
+	printf '%s\n' "$file_list"
 }
 
 url_encode_path() {
