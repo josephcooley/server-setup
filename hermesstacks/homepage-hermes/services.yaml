@@ -83,7 +83,3 @@
         description: Sure collaboration app
         icon: mdi-check-decagram
 
-    - Tugtainer:
-        href: http://{{HOMEPAGE_VAR_MY_IP}}:9412
-        description: Container update dashboard
-        icon: mdi-docker
