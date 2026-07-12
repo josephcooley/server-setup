@@ -21,8 +21,7 @@ DASHBOARD_USERNAME="joseph"
 REPO="josephcooley/server-setup"
 BRANCH="main"
 HERMESCONFIG_SOURCE_DIR="hermesconfig"
-TREE_API="https://api.github.com/repos/${REPO}/git/trees/${BRANCH}?recursive=1"
-RAW_BASE="https://raw.githubusercontent.com/${REPO}/${BRANCH}"
+ARCHIVE_URL="https://codeload.github.com/${REPO}/tar.gz/refs/heads/${BRANCH}"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -67,11 +66,6 @@ require_tools() {
 		exit 1
 	fi
 
-	if ! command -v python3 >/dev/null 2>&1; then
-		print_error "python3 is required but not installed"
-		exit 1
-	fi
-
 	if ! command -v docker >/dev/null 2>&1; then
 		print_error "docker is required but not installed"
 		exit 1
@@ -81,103 +75,92 @@ require_tools() {
 		print_error "mktemp is required but not installed"
 		exit 1
 	fi
+
+	if ! command -v tar >/dev/null 2>&1; then
+		print_error "tar is required but not installed"
+		exit 1
+	fi
 }
 
 print_subsection() {
 	echo -e "${BLUE}→ $1${NC}"
 }
 
-fetch_hermesconfig_file_list() {
-	local api_response
-	local file_list
-
-	if ! api_response=$(curl -fsSL -H "Accept: application/vnd.github+json" "$TREE_API"); then
-		print_error "Failed to fetch GitHub tree API: $TREE_API"
-		print_warning "Check internet access, repo/branch values, and GitHub availability"
-		exit 1
-	fi
-
-	if [[ -z "$api_response" ]]; then
-		print_error "GitHub API returned an empty response"
-		exit 1
-	fi
-
-	if ! file_list=$(python3 - "$HERMESCONFIG_SOURCE_DIR" <<'PY'
-import json
-import sys
-
-source_dir = sys.argv[1].rstrip('/') + '/'
-raw = sys.stdin.read()
-
-try:
-    data = json.loads(raw)
-except json.JSONDecodeError:
-    print("GitHub API response was not valid JSON", file=sys.stderr)
-    sys.exit(2)
-
-if "tree" not in data:
-    msg = data.get("message", "GitHub API response missing 'tree' field")
-    print(msg, file=sys.stderr)
-    sys.exit(3)
-
-for node in data.get("tree", []):
-    path = node.get("path", "")
-    if node.get("type") == "blob" and path.startswith(source_dir):
-        print(path)
-PY
-	<<< "$api_response"); then
-		print_error "Failed to parse GitHub tree response"
-		print_warning "The API may be rate-limited or returning an unexpected payload"
-		exit 1
-	fi
-
-	printf '%s\n' "$file_list"
-}
-
-url_encode_path() {
-	python3 - "$1" <<'PY'
-import sys
-from urllib.parse import quote
-
-print(quote(sys.argv[1]))
-PY
-}
-
 step_2_download_hermesconfig() {
-	local full_path
+	local archive_file
+	local extract_dir
+	local repo_root
+	local source_dir
+	local source_file
 	local rel_path
 	local dest_path
-	local encoded_path
 	local downloaded_any=false
+	local failed_count=0
+
+	archive_file="$(mktemp)"
+	extract_dir="$(mktemp -d)"
+
+	cleanup_step2_temp() {
+		rm -f "$archive_file"
+		rm -rf "$extract_dir"
+	}
 
 	print_section "STEP 2: Download hermesconfig Files"
-	print_subsection "Source: ${REPO}/${HERMESCONFIG_SOURCE_DIR} (branch: ${BRANCH})"
+	print_subsection "Source: ${REPO}/${HERMESCONFIG_SOURCE_DIR} (branch: ${BRANCH}, archive mode)"
 	print_subsection "Destination: $HERMES_DEST_DIR"
 	mkdir -p "$HERMES_DEST_DIR"
 
-	while IFS= read -r full_path; do
-		[[ -z "$full_path" ]] && continue
-		rel_path="${full_path#${HERMESCONFIG_SOURCE_DIR}/}"
+	if ! curl -fsSL "$ARCHIVE_URL" -o "$archive_file"; then
+		print_error "Failed to download repository archive: $ARCHIVE_URL"
+		print_warning "Check internet access, repo/branch values, and GitHub availability"
+		cleanup_step2_temp
+		exit 1
+	fi
+
+	if ! tar -xzf "$archive_file" -C "$extract_dir"; then
+		print_error "Failed to extract repository archive"
+		cleanup_step2_temp
+		exit 1
+	fi
+
+	repo_root="$(find "$extract_dir" -mindepth 1 -maxdepth 1 -type d | head -n 1)"
+	source_dir="$repo_root/$HERMESCONFIG_SOURCE_DIR"
+	if [[ -z "$repo_root" || ! -d "$source_dir" ]]; then
+		print_error "Could not locate ${HERMESCONFIG_SOURCE_DIR}/ in downloaded archive"
+		cleanup_step2_temp
+		exit 1
+	fi
+
+	while IFS= read -r -d '' source_file; do
+		[[ -z "$source_file" ]] && continue
+		rel_path="${source_file#${source_dir}/}"
 		dest_path="${HERMES_DEST_DIR}/${rel_path}"
-		encoded_path="$(url_encode_path "$full_path")"
 
 		if [[ -e "$dest_path" ]]; then
 			print_info "Overwriting existing file: ${rel_path}"
 		fi
 
 		mkdir -p "$(dirname "$dest_path")"
-		if curl -fsSL "${RAW_BASE}/${encoded_path}" -o "$dest_path"; then
+		if cp -f "$source_file" "$dest_path"; then
 			print_success "Downloaded: ${rel_path}"
 			downloaded_any=true
 		else
 			print_warning "Failed to download: ${rel_path}"
+			failed_count=$((failed_count + 1))
 		fi
-	done < <(fetch_hermesconfig_file_list)
+	done < <(find "$source_dir" -type f -print0)
 
 	if [[ "$downloaded_any" != "true" ]]; then
 		print_error "No files were downloaded from ${HERMESCONFIG_SOURCE_DIR}/"
+		cleanup_step2_temp
 		exit 1
 	fi
+
+	if (( failed_count > 0 )); then
+		print_warning "Completed with ${failed_count} file download warning(s)"
+	fi
+
+	cleanup_step2_temp
 }
 
 ensure_container_running() {
