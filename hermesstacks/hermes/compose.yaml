@@ -15,6 +15,7 @@ services:
   hermes-agent:
     image: nousresearch/hermes-agent:latest
     container_name: hermes-agent
+    #command: dashboard --host 0.0.0.0 --port 9119
     command: gateway run
     ports:
       - 127.0.0.1:8642:8642
@@ -42,11 +43,11 @@ services:
     ports:
       - 8787:8787
     volumes:
-      - /opt/stacks/hermes/webui:/home/hermeswebui/.hermes
+      - /opt/stacks/hermes/agent:/home/hermeswebui/.hermes
       - hermes-agent-src:/home/hermeswebui/.hermes/hermes-agent:ro
       - /opt/stacks/hermes/agent/workspace:/workspace
     environment:
-      - HERMES_WEBUI_PASSWORD=C1ooleoo
+      - HERMES_WEBUI_PASSWORD=
       - HERMES_WEBUI_HOST=0.0.0.0
       - HERMES_WEBUI_PORT=8787
       - HERMES_WEBUI_STATE_DIR=/home/hermeswebui/.hermes/webui
