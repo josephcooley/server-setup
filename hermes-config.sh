@@ -86,6 +86,29 @@ print_subsection() {
 	echo -e "${BLUE}→ $1${NC}"
 }
 
+prompt_for_step2_download_choice() {
+	local response
+
+	while true; do
+		read -rp "Download hermesconfig folder from GitHub now? [Y/n]: " response
+		response="${response:-Y}"
+
+		case "$response" in
+			Y|y|yes|YES)
+				RUN_STEP2_DOWNLOAD=true
+				return 0
+				;;
+			N|n|no|NO)
+				RUN_STEP2_DOWNLOAD=false
+				return 0
+				;;
+			*)
+				print_warning "Please answer Y or N"
+				;;
+		esac
+	done
+}
+
 step_2_download_hermesconfig() {
 	local archive_file
 	local extract_dir
@@ -280,7 +303,14 @@ main() {
 	require_tools
 
 	step_1_setup_hermes_dashboard
-	step_2_download_hermesconfig
+	prompt_for_step2_download_choice
+
+	if [[ "$RUN_STEP2_DOWNLOAD" == "true" ]]; then
+		step_2_download_hermesconfig
+	else
+		print_section "STEP 2: Skipped"
+		print_warning "Skipping hermesconfig download by user choice"
+	fi
 
 	print_section "COMPLETE"
 	print_success "Step 1 and Step 2 finished"
