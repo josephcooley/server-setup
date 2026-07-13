@@ -27,8 +27,8 @@ services:
     environment:
       - HERMES_DASHBOARD=1
       - HERMES_HOME=/home/hermes/.hermes
-      - HERMES_UID=${UID}
-      - HERMES_GID=${GID}
+      - HERMES_UID=1000
+      - HERMES_GID=1000
     restart: unless-stopped
     networks:
       - hermes-net
@@ -52,8 +52,8 @@ services:
       - HERMES_WEBUI_PORT=8787
       - HERMES_WEBUI_STATE_DIR=/home/hermeswebui/.hermes/webui
       - HERMES_API_URL=http://hermes-agent:8642
-      - WANTED_UID=${UID}
-      - WANTED_GID=${GID}
+      - WANTED_UID=1000
+      - WANTED_GID=1000
     restart: unless-stopped
     networks:
       - hermes-net
