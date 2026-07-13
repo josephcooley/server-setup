@@ -301,9 +301,9 @@ step_1_setup_hermes_dashboard() {
 main() {
 	require_root
 	require_tools
+	prompt_for_step2_download_choice
 
 	step_1_setup_hermes_dashboard
-	prompt_for_step2_download_choice
 
 	if [[ "$RUN_STEP2_DOWNLOAD" == "true" ]]; then
 		step_2_download_hermesconfig
