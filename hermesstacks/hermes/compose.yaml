@@ -20,9 +20,8 @@ services:
       - 127.0.0.1:8642:8642
       - 9119:9119
     volumes:
-      - /opt/stacks/hermes/agent:/home/hermes/.hermes
-      - hermes-agent-src:/opt/hermes
-      - /opt/stacks:/opt/stacks
+      #- hermes-agent-src:/opt/hermes
+      - /opt/stacks:/stacks
       - hermes-data:/opt/data
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
@@ -42,9 +41,11 @@ services:
     ports:
       - 8787:8787
     volumes:
-      - /opt/stacks/hermes/webui:/home/hermeswebui/.hermes
-      - hermes-agent-src:/home/hermeswebui/.hermes/hermes-agent:ro
       - /opt/stacks/hermes/agent/workspace:/workspace
+      # Point the WebUI to the exact same data folder the agent uses
+      - /opt/stacks/hermes/agent:/root/.hermes
+      # Dedicated space for WebUI web app settings/auth databases
+      - hermes-webui-state:/var/lib/hermes-webui
     environment:
       - HERMES_WEBUI_PASSWORD=${HERMES_PASS}
       - HERMES_WEBUI_HOST=0.0.0.0
