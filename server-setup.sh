@@ -24,6 +24,9 @@ SAMBA_PASSWORD=""  # Leave empty to be prompted at startup
 # Dockge Configuration
 DOCKGE_PORT="5001"
 STACKS_DIR="/opt/stacks"
+HERMES_STACK_DIR="${STACKS_DIR}/hermes"
+HERMES_COMPOSE_FILE="${HERMES_STACK_DIR}/compose.yaml"
+HERMES_COMPOSE_URL="https://raw.githubusercontent.com/josephcooley/server-setup/main/hermesstacks/hermes/compose.yaml"
 
 # Prefer the invoking user for Hermes config when running via sudo.
 TARGET_USER="${SUDO_USER:-${USER:-root}}"
@@ -187,8 +190,22 @@ print_section "STEP 3: DOCKGE SETUP"
 print_subsection "Creating Dockge directories"
 mkdir -p "$STACKS_DIR"
 mkdir -p "$STACKS_DIR/dockge"
+mkdir -p "$HERMES_STACK_DIR"
 chown -R "$TARGET_USER:$TARGET_GROUP" "$STACKS_DIR/dockge"
-print_success "Directories created: $STACKS_DIR/dockge, $STACKS_DIR"
+print_success "Directories created: $STACKS_DIR/dockge, $HERMES_STACK_DIR, $STACKS_DIR"
+
+print_subsection "Ensuring Hermes compose file exists"
+if [[ -f "$HERMES_COMPOSE_FILE" ]]; then
+    print_info "Hermes compose already present, skipping download: $HERMES_COMPOSE_FILE"
+else
+    if curl -fsSL "$HERMES_COMPOSE_URL" -o "$HERMES_COMPOSE_FILE"; then
+        chown "$TARGET_USER:$TARGET_GROUP" "$HERMES_COMPOSE_FILE"
+        print_success "Downloaded Hermes compose to $HERMES_COMPOSE_FILE"
+    else
+        print_error "Failed to download Hermes compose from $HERMES_COMPOSE_URL"
+        exit 1
+    fi
+fi
 
 print_subsection "Creating compose.yaml for Dockge"
 cat > "$STACKS_DIR/dockge/compose.yaml" << EOF
@@ -403,7 +420,7 @@ echo "1. Download stack files:"
 echo "   sudo bash install-stacks.sh"
 echo ""
 echo "2. Download Hermes config:"
-echo "   sudo bash hermes-after-launch.sh"
+echo "   sudo bash hermes-config.sh"
 echo ""
 echo "3. Access Dockge:"
 echo "   Open http://${PRIMARY_IP}:${DOCKGE_PORT} in your browser"
