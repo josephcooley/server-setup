@@ -6,7 +6,7 @@ Scripts for setting up an Ubuntu server with Docker container management, a Samb
 
 This script installs Docker, starts Dockge, configures the Samba share used by Hermes at `/opt/stacks/hermes/workspace`, creates the Samba user, and writes the Samba share configuration for Hermes-related access.
 
-It does not download stack files. Use `install-stacks.sh` for stack bootstrap files and `post-stacks-up.sh` for Hermes config tasks.
+It does not download stack files. Use `install-stacks.sh` for stack bootstrap files and `hermes-config.sh` for Hermes config tasks.
 
 ### Usage
 
@@ -31,17 +31,22 @@ When run, it prompts for:
 curl -O https://raw.githubusercontent.com/josephcooley/server-setup/main/install-stacks.sh && chmod +x install-stacks.sh && sudo ./install-stacks.sh
 ```
 
-## `post-stacks-up.sh` - Post-Stacks-Up Tasks
+Current stack folders in this repo:
+
+- `hermesstacks`: `code-server`, `dashboards`, `dockhand`, `hermes`, `homeassistant`, `homepage-hermes`, `llama-cpp`, `manifest`, `omniroute`, `paperless-ngx`, `sure`, `tandoor`
+- `mediastacks`: `arrstack`, `book-stack`, `grimmory`, `homepage-media`, `qbittorrent`
+
+## `hermes-config.sh` - Post-Stacks-Up Tasks
 
 Run this script after your Docker Compose stacks are started. It currently includes:
 
 - Step 1: Hermes dashboard setup (prompts for password, generates hash in container, updates `/opt/stacks/hermes/agent/config.yaml`)
-- Step 2: Downloads files from the repo `hermesconfig/` folder into `/opt/stacks/hermes/` and overwrites existing files
+- Step 2: Optionally downloads files from the repo `hermesconfig/` folder into `/opt/stacks/hermes/` and overwrites existing files
 
 ### Usage
 
 ```bash
-curl -O https://raw.githubusercontent.com/josephcooley/server-setup/main/post-stacks-up.sh && chmod +x post-stacks-up.sh && sudo ./post-stacks-up.sh
+curl -O https://raw.githubusercontent.com/josephcooley/server-setup/main/hermes-config.sh && chmod +x hermes-config.sh && sudo ./hermes-config.sh
 ```
 
 ## Configuration
@@ -60,7 +65,7 @@ Edit the configuration block at the top of `server-setup.sh` before running if y
 1. Run `server-setup.sh` to install Docker, Dockge, and Samba.
 2. Run `install-stacks.sh` to pull `compose.yaml` and `.env` files into `/opt/stacks/`.
 3. Start the stacks from Dockge or with `docker compose` in each stack directory.
-4. Run `post-stacks-up.sh` for Hermes dashboard auth setup and `hermesconfig/` file download.
+4. Run `hermes-config.sh` for Hermes dashboard auth setup and optional `hermesconfig/` file download.
 
 
 ## `mounts.sh` - NFS Mounts Only
@@ -83,7 +88,7 @@ curl -O https://raw.githubusercontent.com/josephcooley/server-setup/main/mounts.
 | Samba | Windows-compatible file sharing |
 | Hermes-related Samba setup | Samba share and user configuration for Hermes |
 | Stack bootstrap (`install-stacks.sh`) | Downloads only `compose.yaml` and `.env` files from selected stack families |
-| Post-stacks tasks (`post-stacks-up.sh`) | Sets Hermes dashboard auth and downloads repo `hermesconfig/` files into `/opt/stacks/hermes/` |
+| Post-stacks tasks (`hermes-config.sh`) | Sets Hermes dashboard auth and optionally downloads repo `hermesconfig/` files into `/opt/stacks/hermes/` |
 | NFS client | Mount support for `mounts.sh` |
 
 ## Troubleshooting
