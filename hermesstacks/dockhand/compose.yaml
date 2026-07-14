@@ -8,7 +8,7 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - /opt/stacks/dockhand:/app/data
-      - /opt/stacks:opt/stacks
+      - /opt/stacks:/stacks
     environment:
       - DATA_DIR=/opt/stacks 
 volumes:
