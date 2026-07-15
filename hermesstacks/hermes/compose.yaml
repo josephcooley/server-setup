@@ -11,6 +11,12 @@
 #    username: joseph
 #    password_hash: "<paste-your-hash-here>"
 
+#sudo nano /opt/stacks/hermes/agent/.env
+#Add this
+#API_SERVER_ENABLED=true
+#API_SERVER_HOST=0.0.0.0
+#API_SERVER_KEY=<your real random string from openssl rand -hex 32>
+
 services:
   hermes-agent:
     image: nousresearch/hermes-agent:latest
@@ -47,13 +53,18 @@ services:
       - hermes-agent-src:/home/hermeswebui/.hermes/hermes-agent:ro
       - /opt/stacks/hermes/agent/workspace:/workspace
     environment:
-      - HERMES_WEBUI_PASSWORD=
-      - HERMES_WEBUI_HOST=0.0.0.0
-      - HERMES_WEBUI_PORT=8787
+      - HERMES_WEBUI_PASSWORD=<Hermes web UI Password>
+      - HERMES_WEBUI_HOST=0.0.0.0 #maybe not needed
+      - HERMES_WEBUI_PORT=8787 #maybe not needed
+      #Needed for sure
+      - HERMES_WEBUI_GATEWAY_BASE_URL=http://hermes-agent:8642
       - HERMES_WEBUI_STATE_DIR=/home/hermeswebui/.hermes/webui
-      - HERMES_API_URL=http://hermes-agent:8642
       - WANTED_UID=1000
       - WANTED_GID=1000
+      - HERMES_WEBUI_CHAT_BACKEND=gateway
+      - HERMES_WEBUI_GATEWAY_USE_RUNS_API=true
+      - HERMES_API_URL=http://hermes-agent:8642
+      - HERMES_API_TOKEN=<Same API_SERVER_KEY token from above that was posted in .env>
     restart: unless-stopped
     networks:
       - hermes-net
