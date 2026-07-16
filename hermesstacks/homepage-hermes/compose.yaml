@@ -9,5 +9,5 @@ services:
     ports:
       - 3000:3000
     volumes:
-      - /opt/dockge:/app/config
+      - /opt/stacks/homepage-hermes:/app/config
     restart: unless-stopped
