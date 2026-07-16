@@ -9,7 +9,7 @@ services:
     ports:
       - 3001:3000
     volumes:
-      - ./:/app/config
+      - opt/stacks/homepage-media:/app/config
       #- /var/run/docker.sock:/var/run/docker.sock:ro # optional, for docker integrations
     restart: unless-stopped
 networks: {}
