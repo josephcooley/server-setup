@@ -173,6 +173,20 @@ systemctl enable --now docker
 
 print_success "Docker installed and enabled"
 
+print_subsection "Adding ${TARGET_USER} to docker group"
+if id "${TARGET_USER}" &>/dev/null; then
+    if id -nG "${TARGET_USER}" | tr ' ' '\n' | grep -qx docker; then
+        print_info "${TARGET_USER} is already a member of the docker group"
+    else
+        usermod -aG docker "${TARGET_USER}"
+        print_success "Added ${TARGET_USER} to the docker group"
+    fi
+else
+    print_warning "Target user '${TARGET_USER}' does not exist; skipping docker group update"
+fi
+
+print_info "${TARGET_USER} must log out and back in before docker commands work without sudo"
+
 # Verify Docker installation
 if docker --version &>/dev/null; then
     DOCKER_VERSION=$(docker --version)
