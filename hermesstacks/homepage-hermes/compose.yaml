@@ -9,5 +9,5 @@ services:
     ports:
       - 3000:3000
     volumes:
-      - ./:/app/config
+      - /opt/dockge:/app/config
     restart: unless-stopped
