@@ -11,22 +11,5 @@ services:
     ports:
       - 3010:3000
       - 3011:3001
-    labels:
-      - traefik.enable=true
-      - traefik.http.routers.obsidian.rule=Host(`${OBSIDIAN_HOST:-obsidian.local}`)
-      - traefik.http.routers.obsidian.entrypoints=websecure
-      - traefik.http.routers.obsidian.tls=true
-      - traefik.http.routers.obsidian.tls.certresolver=letsencrypt
-      - traefik.http.services.obsidian.loadbalancer.server.port=3000
-      - traefik.docker.network=${TRAEFIK_PROXY_NETWORK:-proxy}
     shm_size: 1gb
     restart: unless-stopped
-    env_file:
-      - ./.env
-    networks:
-      - proxy
-
-networks:
-  proxy:
-    external: true
-    name: ${TRAEFIK_PROXY_NETWORK:-proxy}
