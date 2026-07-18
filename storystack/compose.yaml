@@ -1,0 +1,38 @@
+version: "3"
+
+services:
+  db:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: wiki
+      POSTGRES_PASSWORD: wikijsrocks
+      POSTGRES_USER: wikijs
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    networks:
+      - story-wiki
+
+  wiki:
+    image: ghcr.io/requarks/wiki:2
+    depends_on:
+      - db
+    restart: unless-stopped
+    environment:
+      DB_TYPE: postgres
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USER: wikijs
+      DB_PASS: wikijsrocks
+      DB_NAME: wiki
+    ports:
+      # Visit http://localhost:3000 in your browser to use the wiki
+      - "3000:3000"
+    networks:
+      - story-wiki
+
+volumes:
+  db-data:
+
+networks:
+  story-wiki:
