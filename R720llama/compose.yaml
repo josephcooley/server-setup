@@ -1,0 +1,77 @@
+services:
+  # One-shot job: pulls the GGUF model from Hugging Face into /mnt/SSD/models
+  # if it isn't already there. Safe to leave in place — it no-ops on later `up` runs.
+  model-downloader:
+    image: python:3.12-slim
+    container_name: model-downloader
+    volumes:
+      - /mnt/SSD/models:/models
+    entrypoint:
+      - /bin/bash
+      - -c
+    command:
+      - |
+        set -e
+        pip install --no-cache-dir -q -U "huggingface_hub[cli]"
+        if [ -f "/models/${MODEL_FILENAME}" ]; then
+          echo "Model already present, skipping download."
+        else
+          echo "Downloading ${MODEL_FILENAME} from ${MODEL_REPO} ..."
+          hf download "${MODEL_REPO}" "${MODEL_FILENAME}" \
+            --local-dir /models
+        fi
+    environment:
+      MODEL_REPO: ${MODEL_REPO}
+      MODEL_FILENAME: ${MODEL_FILENAME}
+  llamacpp:
+    # Built from source (see llamacpp.Dockerfile) with AVX2/FMA/AVX512/F16C
+    # disabled — required for Sandy/Ivy Bridge Xeons (E5-26xx v1/v2), which
+    # only support plain AVX. Run `docker compose build` before first `up`.
+    build:
+      context: .
+      dockerfile: llamacpp.Dockerfile
+    image: llamacpp-noavx2:latest
+    container_name: llamacpp
+    restart: unless-stopped
+    depends_on:
+      model-downloader:
+        condition: service_completed_successfully
+    volumes:
+      - /mnt/SSD/models:/models
+    ports:
+      - 8080:8080
+    #cpuset: 0-9 # <-- pin to physical cores of socket 0 (verify with `numactl --hardware`)
+    #ulimits:
+    # memlock:
+    #   soft: -1
+    #   hard: -1
+    command: >
+      -m /models/${MODEL_FILENAME} --host 0.0.0.0 --port 8080 --ctx-size 64000
+      --threads 30 --threads-batch 30 --n-gpu-layers 0 --mlock --flash-attn off
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - -f
+        - http://localhost:8080/health
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+  openwebui:
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: openwebui
+    restart: unless-stopped
+    depends_on:
+      - llamacpp
+    ports:
+      - 3005:8080
+    environment:
+      OPENAI_API_BASE_URL: http://llamacpp:8080/v1
+      OPENAI_API_KEY: sk-no-key-required
+      WEBUI_AUTH: "false"
+    volumes:
+      - openwebui-data:/app/backend/data
+volumes:
+  openwebui-data: null
+networks: {}
